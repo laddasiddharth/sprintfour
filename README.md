@@ -17,7 +17,6 @@ It is designed to automatically flag sensitive information using a state-of-the-
 - **Export Redacted Documents:** Download a sanitized, multi-page `.pdf` file with automatic text-wrapping, where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
 - **Inline Confidence Scores:** AI confidence percentages (e.g., `100%`) are displayed directly on PII tags in the document viewer, giving instant visibility into the model's certainty without extra clicks.
 - **Mobile Responsive & Accessible:** Fully responsive design with optimized `<select>` menus, smart idle states, and viewport scaling for flawless mobile usage. Includes a beautiful, high-contrast Dark Mode.
-- **State Persistence:** Your manual redactions and progress are automatically saved to `localStorage`, so you never lose your work on refresh.
 
 ## Getting Started
 
