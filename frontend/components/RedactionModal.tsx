@@ -2,22 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PiiType } from "@/lib/types";
-import { TYPE_LABEL } from "@/lib/ui";
 
-const TYPE_COLOR: Record<PiiType, { bg: string; text: string; border: string }> = {
-  name:    { bg: "bg-purple-100 dark:bg-purple-950", text: "text-purple-700 dark:text-purple-300", border: "border-purple-300 dark:border-purple-700" },
-  phone:   { bg: "bg-blue-100 dark:bg-blue-950",   text: "text-blue-700 dark:text-blue-300",   border: "border-blue-300 dark:border-blue-700" },
-  email:   { bg: "bg-cyan-100 dark:bg-cyan-950",   text: "text-cyan-700 dark:text-cyan-300",   border: "border-cyan-300 dark:border-cyan-700" },
-  address: { bg: "bg-orange-100 dark:bg-orange-950", text: "text-orange-700 dark:text-orange-300", border: "border-orange-300 dark:border-orange-700" },
-  dob:     { bg: "bg-yellow-100 dark:bg-yellow-950", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-300 dark:border-yellow-700" },
-  ssn:     { bg: "bg-red-100 dark:bg-red-950",     text: "text-red-700 dark:text-red-300",     border: "border-red-300 dark:border-red-700" },
-  account: { bg: "bg-teal-100 dark:bg-teal-950", text: "text-teal-700 dark:text-teal-300", border: "border-teal-300 dark:border-teal-700" },
-  financial:{ bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-300 dark:border-emerald-700" },
-  url:     { bg: "bg-indigo-100 dark:bg-indigo-950", text: "text-indigo-700 dark:text-indigo-300", border: "border-indigo-300 dark:border-indigo-700" },
-  org:     { bg: "bg-fuchsia-100 dark:bg-fuchsia-950", text: "text-fuchsia-700 dark:text-fuchsia-300", border: "border-fuchsia-300 dark:border-fuchsia-700" },
-  job:     { bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-300 dark:border-rose-700" },
-  other:   { bg: "bg-neutral-100 dark:bg-neutral-800", text: "text-neutral-600 dark:text-neutral-300", border: "border-neutral-300 dark:border-neutral-600" },
-};
+// Tags removed by request
 
 interface Props {
   text: string;
@@ -42,7 +28,7 @@ export default function RedactionModal({
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const colors = TYPE_COLOR[type];
+
 
   const fetchExplanation = useCallback(async () => {
     setLoading(true);
@@ -57,7 +43,7 @@ export default function RedactionModal({
       setExplanation(data.explanation);
       if (data.error) setHasError(true);
     } catch {
-      setExplanation(`"${text}" appears to be a ${TYPE_LABEL[type]} that could identify a specific individual.`);
+      setExplanation(`"${text}" appears to be sensitive information that could identify a specific individual.`);
       setHasError(true);
     } finally {
       setLoading(false);
@@ -93,11 +79,6 @@ export default function RedactionModal({
         <div className={`px-6 pt-6 pb-4 border-b border-rule`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <span
-                className={`font-data text-[11px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}
-              >
-                {TYPE_LABEL[type]}
-              </span>
               {confidence !== undefined && (
                 <span className="font-data text-[10px] text-neutral uppercase tracking-wide">
                   {Math.round(confidence * 100)}% confidence

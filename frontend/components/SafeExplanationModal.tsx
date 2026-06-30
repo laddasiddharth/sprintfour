@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PiiType } from "@/lib/types";
-import { PII_TYPES, TYPE_LABEL } from "@/lib/ui";
 
 interface Props {
   text: string;
@@ -108,37 +107,20 @@ export default function SafeExplanationModal({ text, context, onRedact, onClose 
 
         {/* Actions */}
         <div className="px-6 pb-6">
-          {showTypes ? (
-            <div>
-              <p className="font-data text-xs text-neutral mb-3">Redact as:</p>
-              <div className="flex flex-wrap gap-2">
-                {PII_TYPES.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => { onRedact(t); onClose(); }}
-                    className="font-data text-[11px] uppercase tracking-wider bg-ink text-paper px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
-                  >
-                    {TYPE_LABEL[t]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 font-data text-sm bg-ink text-paper px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity font-medium"
-              >
-                Got it, leave visible
-              </button>
-              <button
-                onClick={() => setShowTypes(true)}
-                className="flex-1 font-data text-sm border border-rule text-ink-soft px-4 py-2.5 rounded-lg hover:border-neutral hover:text-ink transition-colors"
-              >
-                I disagree, redact it
-              </button>
-            </div>
-          )}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 font-data text-sm bg-ink text-paper px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity font-medium"
+            >
+              Got it, leave visible
+            </button>
+            <button
+              onClick={() => { onRedact("other"); onClose(); }}
+              className="flex-1 font-data text-sm border border-rule text-ink-soft px-4 py-2.5 rounded-lg hover:border-neutral hover:text-ink transition-colors"
+            >
+              I disagree, redact it
+            </button>
+          </div>
         </div>
       </div>
 
