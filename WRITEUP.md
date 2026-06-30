@@ -13,13 +13,13 @@ We split corrections into clear risk profiles:
 To ensure a premium, production-ready experience, we recently overhauled the application's usability and responsiveness:
 
 1. **Intuitive Document Layout:** Moved the color-coded legend to the top of the document view for instant context before reading.
-2. **Confidence Scores at a Glance:** The AI's confidence percentage (e.g., `NAME 98%`) is now displayed directly on the tags within the document, removing the need to click to see the AI's certainty.
+2. **Confidence Scores at a Glance:** The AI's confidence percentage (e.g., `98%`) is now displayed directly on the tags within the document, removing the need to click to see the AI's certainty.
 3. **Flawless Mobile Responsiveness:** Added global viewport meta tags, fixed layout constraints, and allowed horizontal text to wrap gracefully. The UI now looks native and scales perfectly down to mobile screens.
-4. **Streamlined Controls:** Replaced bulky grids of 12 PII buttons with clean, sleek `<select>` dropdown menus in both the sidebar and main view to save critical vertical space.
+4. **Unified Redaction Strategy:** Eliminated unnecessary PII categories (like distinguishing between "ORG" and "PERSON"). All sensitive data is now treated uniformly, drastically reducing cognitive load during review.
 5. **Accessible Dark Mode:** Overhauled the dark mode color palette, specifically tweaking neutral text colors for high-contrast, effortless readability against dark backgrounds. 
-6. **Contextual Action Menus:** Highlighting text no longer forces the user to move their mouse to the bottom of the screen. A sleek, fixed-position contextual popup now floats directly above the highlighted text for rapid manual redactions.
-7. **Premium UI Micro-Animations:** Replaced static layouts with elegant typography gradients, tactile button hover states, and smooth drag-and-drop depth cues, making the tool feel fast, modern, and satisfying to use.
-8. **True PDF Export:** Upgraded the export engine from a raw text dump to a true `jsPDF` multi-page document generator with automatic line-wrapping and pagination.
+6. **Robust Python Backend:** Split the architecture to move heavy document processing (like PDF extraction and visual redaction) to a high-performance Python FastAPI backend, while keeping the UI snappy in Next.js.
+7. **True Visual PDF Redaction:** Built a custom PDF renderer that allows native text selection on original PDFs, and securely blacks out pixels on the final exported document using PyMuPDF.
+8. **Premium UI Micro-Animations:** Replaced static layouts with elegant typography gradients, tactile button hover states, and smooth drag-and-drop depth cues, making the tool feel fast, modern, and satisfying to use.
 
 ## What's Next?
 Given more time, we would implement keyboard-only triage (so Sam never has to reach for the mouse) and multi-document batching to improve his throughput even further.
