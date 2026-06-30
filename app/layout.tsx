@@ -17,7 +17,7 @@ const themeScript = `
   (function() {
     try {
       var saved = localStorage.getItem('theme');
-      var preferred = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var preferred = saved || 'light';
       if (preferred === 'dark') {
         document.documentElement.classList.add('dark');
       }
