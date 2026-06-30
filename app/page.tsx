@@ -35,6 +35,7 @@ export default function Home() {
   const [importedDocs, setImportedDocs] = useState<DocumentData[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -71,18 +72,46 @@ export default function Home() {
   const autoAnalyzeRef = useRef(false);
 
   useEffect(() => {
+    setIsClient(true);
+    try {
+      const savedDocs = localStorage.getItem("conseal-imported-docs");
+      if (savedDocs) setImportedDocs(JSON.parse(savedDocs));
+      const savedId = localStorage.getItem("conseal-selected-doc-id");
+      if (savedId) setSelectedDocId(savedId);
+    } catch (e) {
+      console.error("Failed to load local state", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("conseal-imported-docs", JSON.stringify(importedDocs));
+      localStorage.setItem("conseal-selected-doc-id", selectedDocId);
+    }
+  }, [importedDocs, selectedDocId, isClient]);
+
+  useEffect(() => {
     setFocusedId(null);
     setPendingSelection(null);
     setSafeExplanationText(null);
     setImportError(null);
 
+    // Don't auto-analyze until client state is loaded
+    if (!isClient) return;
+
     if (autoAnalyzeRef.current) {
       autoAnalyzeRef.current = false;
       handleAnalyze();
     } else {
-      setAppState("idle");
+      const saved = localStorage.getItem(`conseal-state-${currentDoc.id}`);
+      if (saved) {
+        // If there's a cached state for this document, automatically open it
+        handleAnalyze();
+      } else {
+        setAppState("idle");
+      }
     }
-  }, [currentDoc.id]);
+  }, [currentDoc.id, isClient]);
 
   const handleFileImport = useCallback(async (file: File) => {
     setImportError(null);
@@ -203,6 +232,7 @@ export default function Home() {
         start: candidate.start,
         end: candidate.end,
         addedBy: "sam",
+        confidence: 1,
       },
     ]);
     setManualCounter((n) => n + 1);
@@ -247,6 +277,7 @@ export default function Home() {
         start: pendingSelection.start,
         end: pendingSelection.end,
         addedBy: "sam",
+        confidence: 1,
       },
     ]);
     setManualCounter((n) => n + 1);
@@ -323,7 +354,7 @@ export default function Home() {
 
         {appState === "idle" ? (
           <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-10 max-w-lg w-full">
+            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-6 md:p-10 max-w-lg w-full">
               <h1 className="font-display text-2xl font-semibold text-ink mb-1">Conseal PII Detector</h1>
               <p className="font-data text-sm text-neutral mb-8">Select a sample document or import your own file to begin analysis.</p>
 
@@ -374,7 +405,7 @@ export default function Home() {
                 <select
                   value={selectedDocId}
                   onChange={(e) => setSelectedDocId(e.target.value)}
-                  className="w-full bg-paper border border-rule rounded-lg px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-ink"
+                  className="w-full bg-paper border border-rule rounded-lg px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-ink truncate"
                 >
                   <optgroup label="Sample Documents">
                     {DOCUMENTS.map(doc => (
@@ -408,9 +439,9 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start animate-fade-in">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-data text-[11px] text-neutral uppercase tracking-widest">{currentDoc.title}</p>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <p className="font-data text-[11px] text-neutral uppercase tracking-widest break-words">{currentDoc.title}</p>
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={importing}
@@ -457,19 +488,20 @@ export default function Home() {
                     Mark &ldquo;<span className="text-ink font-medium">{pendingSelection.text}</span>&rdquo; as:
                   </p>
                   <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap gap-2">
-                      {PII_TYPES.map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => confirmManualType(t)}
-                          className="font-data text-[11px] bg-ink text-paper px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
-                        >
-                          {TYPE_LABEL[t]}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      <select
+                        onChange={(e) => confirmManualType(e.target.value as PiiType)}
+                        defaultValue=""
+                        className="flex-1 font-data text-xs bg-paper border border-rule rounded-md px-3 py-2 text-ink focus:outline-none focus:border-neutral"
+                      >
+                        <option value="" disabled>Select category...</option>
+                        {PII_TYPES.map((t) => (
+                          <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                        ))}
+                      </select>
                       <button
                         onClick={() => setPendingSelection(null)}
-                        className="font-data text-[11px] text-neutral underline px-2 hover:text-ink transition-colors"
+                        className="font-data text-[11px] text-neutral underline hover:text-ink transition-colors"
                       >
                         cancel
                       </button>

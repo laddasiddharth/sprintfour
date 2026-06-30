@@ -31,6 +31,7 @@ export interface ManualSpan {
   start: number;
   end: number;
   addedBy: "sam";
+  confidence?: number;
 }
 
 export interface CandidateMiss {

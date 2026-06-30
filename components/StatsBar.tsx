@@ -46,26 +46,28 @@ export default function StatsBar({
           </p>
         </div>
 
-        <div className="flex items-center gap-5">
-          {/* Stats */}
-          <div className="flex items-center gap-4 font-data text-xs">
-            <Stat label="suggested" value={totalSuggested} />
-            <Divider />
-            <Stat label="confirmed" value={confirmed} />
-            <Divider />
-            <Stat label="false positives" value={rejected} tone="low-risk" />
-            <Divider />
-            <Stat
-              label="possible misses"
-              value={possibleMisses}
-              tone={possibleMisses > 0 ? "danger" : "low-risk"}
-            />
-            <Divider />
-            <Stat label="added by you" value={added} />
-          </div>
+        <div className="flex items-center gap-4 sm:gap-5 w-full md:w-auto mt-4 md:mt-0">
+          {/* Stats - Only show if we have data or are analyzing */}
+          {source !== null && (
+            <div className="flex items-center gap-2 sm:gap-4 font-data text-xs flex-wrap justify-start">
+              <Stat label="suggested" value={totalSuggested} />
+              <Divider />
+              <Stat label="confirmed" value={confirmed} />
+              <Divider />
+              <Stat label="false positives" value={rejected} tone="low-risk" />
+              <Divider />
+              <Stat
+                label="possible misses"
+                value={possibleMisses}
+                tone={possibleMisses > 0 ? "danger" : "low-risk"}
+              />
+              <Divider />
+              <Stat label="added by you" value={added} />
+            </div>
+          )}
 
           {/* Dark mode toggle */}
-          <div className="flex items-center gap-2 ml-2">
+          <div className="flex items-center gap-2 ml-auto">
             <span className="font-data text-[11px] text-neutral select-none">
               {theme === "dark" ? "🌙" : "☀️"}
             </span>
@@ -80,9 +82,9 @@ export default function StatsBar({
       </div>
 
       {/* Source row */}
-      <div className="flex items-center justify-between mt-2 border-t border-rule pt-2">
-        <div className="flex items-center gap-2">
-          {source && (
+      {source !== null && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 border-t border-rule pt-2 gap-3 sm:gap-0">
+          <div className="flex items-center gap-2">
             <span
               className={`font-data text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                 source === "live"
@@ -92,27 +94,27 @@ export default function StatsBar({
             >
               {source === "live" ? "● Live" : "○ Saved run"}
             </span>
-          )}
-          {note && (
-            <p className="font-data text-[11px] text-neutral">{note}</p>
-          )}
+            {note && (
+              <p className="font-data text-[11px] text-neutral">{note}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onExport}
+              className="font-data text-[11px] text-ink border border-rule px-2 py-0.5 rounded hover:bg-paper-dim transition-colors"
+            >
+              Export Document
+            </button>
+            <button
+              onClick={onRerun}
+              disabled={rerunning}
+              className="font-data text-[11px] text-neutral hover:text-ink underline disabled:opacity-50 transition-colors"
+            >
+              {rerunning ? "running…" : "Re-Run Live Detection"}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onExport}
-            className="font-data text-[11px] text-ink border border-rule px-2 py-0.5 rounded hover:bg-paper-dim transition-colors"
-          >
-            Export Document
-          </button>
-          <button
-            onClick={onRerun}
-            disabled={rerunning}
-            className="font-data text-[11px] text-neutral hover:text-ink underline disabled:opacity-50 transition-colors"
-          >
-            {rerunning ? "running…" : "re-run live detection"}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* All clear banner */}
       {allClear && totalSuggested > 0 && (
@@ -155,9 +157,9 @@ function Stat({
         ? "text-low-risk"
         : "text-ink";
   return (
-    <div className="text-right">
-      <div className={`text-lg font-semibold tabular-nums ${color}`}>{value}</div>
-      <div className="text-neutral uppercase tracking-wide text-[10px]">{label}</div>
+    <div className="text-left md:text-right">
+      <div className={`text-lg font-semibold tabular-nums leading-none ${color}`}>{value}</div>
+      <div className="text-neutral uppercase tracking-wide text-[9px] mt-1 whitespace-nowrap">{label}</div>
     </div>
   );
 }

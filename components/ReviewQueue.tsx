@@ -93,23 +93,23 @@ export default function ReviewQueue({
                   </span>
                 </div>
                 {redactingId === c.id ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {PII_TYPES.map((t) => (
-                      <button
-                        key={t}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRedactCandidate(c.id, t);
-                          setRedactingId(null);
-                        }}
-                        className="font-data text-[11px] bg-ink text-paper px-2 py-1 rounded-md hover:opacity-80 transition-opacity"
-                      >
-                        {TYPE_LABEL[t]}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      onChange={(e) => {
+                        onRedactCandidate(c.id, e.target.value as PiiType);
+                        setRedactingId(null);
+                      }}
+                      defaultValue=""
+                      className="flex-1 font-data text-xs bg-paper border border-danger/30 rounded-md px-2 py-1.5 text-ink focus:outline-none focus:border-danger/60"
+                    >
+                      <option value="" disabled>Select category...</option>
+                      {PII_TYPES.map((t) => (
+                        <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                      ))}
+                    </select>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setRedactingId(null); }}
-                      className="font-data text-[11px] text-neutral underline px-2"
+                      onClick={() => setRedactingId(null)}
+                      className="font-data text-[11px] text-danger/70 hover:text-danger underline px-1"
                     >
                       cancel
                     </button>
