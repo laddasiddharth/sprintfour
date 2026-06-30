@@ -8,7 +8,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import detect, explain, explain_safe, extract_text, redact_doc, redact_pdf
+from routes import detect, explain_safe, extract_text, redact_doc, redact_pdf
 
 app = FastAPI(title="Conseal PII API", version="1.0.0")
 
@@ -21,7 +21,6 @@ app.add_middleware(
 )
 
 app.include_router(detect.router, prefix="/api")
-app.include_router(explain.router, prefix="/api")
 app.include_router(explain_safe.router, prefix="/api")
 app.include_router(extract_text.router, prefix="/api")
 app.include_router(redact_doc.router, prefix="/api")
