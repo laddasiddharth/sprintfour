@@ -14,7 +14,7 @@
  * bounding boxes using character-level tracking.
  */
 
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { PiiSpan, ManualSpan } from "@/lib/types";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -60,8 +60,6 @@ interface Props {
   file: File;
   spans: PiiSpan[];
   manualSpans: ManualSpan[];
-  onConfirm: (id: string) => void;
-  onReject: (id: string, reason: string) => void;
   focusedId: string | null;
   onFocus: (id: string | null) => void;
   onSelectText?: (start: number, end: number, text: string, rect: DOMRect) => void;
@@ -88,8 +86,6 @@ export default function PDFRedactViewer({
   file,
   spans,
   manualSpans,
-  onConfirm,
-  onReject,
   focusedId,
   onFocus,
   onSelectText,
@@ -97,7 +93,7 @@ export default function PDFRedactViewer({
   const [pages, setPages] = useState<PDFPage[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "done" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
-  const [hoveredBox, setHoveredBox] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const blobUrlsRef = useRef<string[]>([]);
 
   // ── Load & render PDF ──────────────────────────────────────────────────────
@@ -140,6 +136,7 @@ export default function PDFRedactViewer({
           offscreen.height = Math.round(viewport.height);
           const ctx = offscreen.getContext("2d")!;
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await page.render({ canvasContext: ctx, viewport } as any).promise;
 
           const imgUrl = await new Promise<string>((resolve) => {
@@ -319,11 +316,11 @@ export default function PDFRedactViewer({
     }
 
     return result;
-  }, [pages, spans, manualSpans]);
+  }, [pages, spans, manualSpans, mode]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  function handleMouseUp(e: React.MouseEvent) {
+  function handleMouseUp() {
     if (mode !== "original" || !onSelectText) return;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
@@ -368,6 +365,7 @@ export default function PDFRedactViewer({
     <div 
       className="w-full h-full overflow-auto bg-[#e5e5e5] p-4 md:p-8 custom-scrollbar select-text"
       onMouseUp={handleMouseUp}
+      ref={containerRef}
     >
       <div className="flex flex-col items-center gap-6">
         {/* Loading shimmer */}
@@ -434,7 +432,6 @@ export default function PDFRedactViewer({
                 const height = `${(box.h / page.canvasH) * 100}%`;
 
                 const isFocused = focusedId === box.spanId;
-                const isHovered = hoveredBox === box.key;
                 const isConfirmed = box.status === "confirmed" || box.isManual;
                 const isRejected = box.status === "rejected";
                 const isPending = box.status === "pending";
@@ -477,9 +474,8 @@ export default function PDFRedactViewer({
                       outlineOffset: "1px",
                       transition: "background-color 0.15s",
                     }}
+                    onContextMenu={(event) => event.preventDefault()}
                     onClick={() => onFocus(isFocused ? null : box.spanId)}
-                    onMouseEnter={() => setHoveredBox(box.key)}
-                    onMouseLeave={() => setHoveredBox(null)}
                   >
                   </div>
                 );

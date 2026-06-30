@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
 
 const LOW_CONFIDENCE_THRESHOLD = 0.75;
@@ -55,8 +54,6 @@ export default function ReviewQueue({
   onDismissCandidate,
   onRemoveManual,
 }: Props) {
-  const [redactingId, setRedactingId] = useState<string | null>(null);
-
   const activeCandidates = candidates.filter((c) => !c.dismissed);
   const pending = spans.filter((s) => s.status === "pending");
   const lowConfidence = pending

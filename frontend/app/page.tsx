@@ -518,7 +518,7 @@ export default function Home() {
                     onClick={handleExplainSafe}
                     className="font-data text-xs border border-rule text-ink-soft px-3 py-1.5 rounded hover:border-neutral hover:text-ink transition-colors"
                   >
-                    Why wasn't this redacted?
+                    Why wasn&apos;t this redacted?
                   </button>
                   <button
                     onClick={() => setPendingSelection(null)}
@@ -538,8 +538,6 @@ export default function Home() {
                       file={currentFile}
                       spans={spans}
                       manualSpans={manualSpans}
-                      onConfirm={confirmSpan}
-                      onReject={rejectSpan}
                       focusedId={focusedId}
                       onFocus={setFocusedId}
                       onSelectText={handleSelectText}
@@ -551,9 +549,6 @@ export default function Home() {
                       focusedId={focusedId}
                       onFocus={setFocusedId}
                       onSelectText={handleSelectText}
-                      onConfirm={confirmSpan}
-                      onReject={rejectSpan}
-                      documentText={currentDoc.text}
                     />
                   )}
                 </div>
@@ -566,8 +561,6 @@ export default function Home() {
                       file={currentFile}
                       spans={spans}
                       manualSpans={manualSpans}
-                      onConfirm={confirmSpan}
-                      onReject={rejectSpan}
                       focusedId={focusedId}
                       onFocus={setFocusedId}
                     />
@@ -578,9 +571,6 @@ export default function Home() {
                       focusedId={focusedId}
                       onFocus={setFocusedId}
                       onSelectText={handleSelectText}
-                      onConfirm={confirmSpan}
-                      onReject={rejectSpan}
-                      documentText={currentDoc.text}
                     />
                   )}
                 </div>
