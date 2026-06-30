@@ -15,7 +15,8 @@ It is designed to automatically flag sensitive information using a state-of-the-
 - **AI Rationale:** Every flagged item comes with an AI-generated explanation for why it was flagged.
 - **File Import:** Upload and extract text from local files (PDF, DOCX, TXT, MD, CSV, HTML, RTF, JSON, XML).
 - **Export Redacted Documents:** Download a sanitized `.txt` file where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
-- **Dark Mode Support:** Toggle between beautiful light and dark UI themes.
+- **Inline Confidence Scores:** AI confidence percentages (e.g., `100%`) are displayed directly on PII tags in the document viewer, giving instant visibility into the model's certainty without extra clicks.
+- **Mobile Responsive & Accessible:** Fully responsive design with optimized `<select>` menus, smart idle states, and viewport scaling for flawless mobile usage. Includes a beautiful, high-contrast Dark Mode.
 - **State Persistence:** Your manual redactions and progress are automatically saved to `localStorage`, so you never lose your work on refresh.
 
 ## Getting Started
