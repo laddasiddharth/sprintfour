@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Segment } from "@/lib/segments";
 import { PiiType } from "@/lib/types";
-import { TYPE_LABEL } from "@/lib/ui";
+import { TYPE_LABEL, PII_TYPES } from "@/lib/ui";
 import RedactionModal from "./RedactionModal";
 
 // Colour palette per PII type
@@ -14,6 +14,11 @@ const TAG_STYLE: Record<PiiType, string> = {
   address: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-700",
   dob:     "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-700",
   ssn:     "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-700",
+  account: "bg-teal-100 text-teal-700 border-teal-300 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-700",
+  financial: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700",
+  url:     "bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-700",
+  org:     "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-300 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:border-fuchsia-700",
+  job:     "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-700",
   other:   "bg-neutral-100 text-neutral-600 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600",
 };
 
@@ -199,7 +204,7 @@ export default function DocumentView({
                     data-seg-kind="redacted"
                     onClick={() => openModal(id, seg.text, type, confidence)}
                     title={`${TYPE_LABEL[type]} — click to review`}
-                    className={`inline-flex items-center gap-1.5 font-data text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full border cursor-pointer transition-all ${tagStyle} ${
+                    className={`select-none inline-flex items-center gap-1.5 font-data text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full border cursor-pointer transition-all ${tagStyle} ${
                       isFocused ? "ring-2 ring-offset-1 shadow-md scale-105" : "hover:shadow-sm hover:scale-105"
                     } ${seg.kind === "manual" ? "outline outline-2 outline-low-risk outline-offset-1" : ""}`}
                   >
@@ -232,7 +237,7 @@ export default function DocumentView({
 
         {/* Footer legend */}
         <div className="border-t border-rule px-8 py-3 bg-paper-dim/50 flex flex-wrap gap-4">
-          {(["name", "phone", "email", "address", "dob", "ssn"] as PiiType[]).map((t) => (
+          {PII_TYPES.filter(t => t !== "other").map((t) => (
             <span key={t} className={`font-data text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full border ${TAG_STYLE[t]}`}>
               {TYPE_LABEL[t]}
             </span>

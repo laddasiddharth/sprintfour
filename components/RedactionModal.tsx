@@ -11,6 +11,11 @@ const TYPE_COLOR: Record<PiiType, { bg: string; text: string; border: string }> 
   address: { bg: "bg-orange-100 dark:bg-orange-950", text: "text-orange-700 dark:text-orange-300", border: "border-orange-300 dark:border-orange-700" },
   dob:     { bg: "bg-yellow-100 dark:bg-yellow-950", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-300 dark:border-yellow-700" },
   ssn:     { bg: "bg-red-100 dark:bg-red-950",     text: "text-red-700 dark:text-red-300",     border: "border-red-300 dark:border-red-700" },
+  account: { bg: "bg-teal-100 dark:bg-teal-950", text: "text-teal-700 dark:text-teal-300", border: "border-teal-300 dark:border-teal-700" },
+  financial:{ bg: "bg-emerald-100 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-300 dark:border-emerald-700" },
+  url:     { bg: "bg-indigo-100 dark:bg-indigo-950", text: "text-indigo-700 dark:text-indigo-300", border: "border-indigo-300 dark:border-indigo-700" },
+  org:     { bg: "bg-fuchsia-100 dark:bg-fuchsia-950", text: "text-fuchsia-700 dark:text-fuchsia-300", border: "border-fuchsia-300 dark:border-fuchsia-700" },
+  job:     { bg: "bg-rose-100 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-300 dark:border-rose-700" },
   other:   { bg: "bg-neutral-100 dark:bg-neutral-800", text: "text-neutral-600 dark:text-neutral-300", border: "border-neutral-300 dark:border-neutral-600" },
 };
 

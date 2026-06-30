@@ -12,6 +12,7 @@ interface Props {
   note?: string;
   onRerun: () => void;
   rerunning: boolean;
+  onExport: () => void;
 }
 
 export default function StatsBar({
@@ -24,6 +25,7 @@ export default function StatsBar({
   note,
   onRerun,
   rerunning,
+  onExport,
 }: Props) {
   const { theme, toggle } = useTheme();
   const allClear =
@@ -95,22 +97,38 @@ export default function StatsBar({
             <p className="font-data text-[11px] text-neutral">{note}</p>
           )}
         </div>
-        <button
-          onClick={onRerun}
-          disabled={rerunning}
-          className="font-data text-[11px] text-neutral hover:text-ink underline disabled:opacity-50 transition-colors"
-        >
-          {rerunning ? "running…" : "re-run live detection"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onExport}
+            className="font-data text-[11px] text-ink border border-rule px-2 py-0.5 rounded hover:bg-paper-dim transition-colors"
+          >
+            Export Document
+          </button>
+          <button
+            onClick={onRerun}
+            disabled={rerunning}
+            className="font-data text-[11px] text-neutral hover:text-ink underline disabled:opacity-50 transition-colors"
+          >
+            {rerunning ? "running…" : "re-run live detection"}
+          </button>
+        </div>
       </div>
 
       {/* All clear banner */}
       {allClear && totalSuggested > 0 && (
-        <div className="mt-3 bg-low-risk-bg border border-low-risk/30 rounded-md px-4 py-2.5 flex items-center gap-2">
-          <span className="text-low-risk text-base">✓</span>
-          <p className="font-data text-xs text-low-risk">
-            All flagged items resolved. Document ready to send.
-          </p>
+        <div className="mt-3 bg-low-risk-bg border border-low-risk/30 rounded-md px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-low-risk text-base">✓</span>
+            <p className="font-data text-xs text-low-risk">
+              All flagged items resolved. Document ready to send.
+            </p>
+          </div>
+          <button
+            onClick={onExport}
+            className="font-data text-[11px] uppercase tracking-wider bg-low-risk text-paper px-3 py-1.5 rounded hover:opacity-90 transition-opacity font-bold"
+          >
+            Download Redacted File
+          </button>
         </div>
       )}
     </div>

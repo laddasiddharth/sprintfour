@@ -5,6 +5,11 @@ export type PiiType =
   | "address"
   | "dob"
   | "ssn"
+  | "account"
+  | "financial"
+  | "url"
+  | "org"
+  | "job"
   | "other";
 
 export type SuggestionStatus = "pending" | "confirmed" | "rejected";
@@ -16,6 +21,7 @@ export interface PiiSpan {
   confidence: number; // 0-1, as returned by the detector
   status: SuggestionStatus;
   reason?: string; // populated when rejected, Sam's stated reason
+  reasoning?: string; // AI's provided reasoning for flagging
 }
 
 export interface ManualSpan {

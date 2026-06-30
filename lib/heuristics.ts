@@ -16,6 +16,22 @@ const STOPWORDS = new Set([
   "Document",
   "Review",
   "Date",
+  "Contact",
+  "Info",
+  "Patient",
+  "History",
+  "Billing",
+  "Information",
+  "Primary",
+  "Emergency",
+  "Insurance",
+  "Policy",
+  "Holder",
+  "Department",
+  "Medical",
+  "Records",
+  "Referral",
+  "Notes",
   "She",
   "Her",
   "His",
@@ -59,13 +75,19 @@ function overlapsAny(start: number, end: number, ranges: Range[]): boolean {
 
 function isSentenceInitial(text: string, wordStart: number): boolean {
   let i = wordStart - 1;
-  while (i >= 0 && /\s/.test(text[i])) i--;
-  if (i < 0) return true; // start of document
-  if (text[i] !== "." && text[i] !== "\n") return false;
+  let hasNewline = false;
   
-  // If it's a newline, it's definitely the start of a line/sentence
-  if (text[i] === "\n") return true;
+  while (i >= 0 && /\s/.test(text[i])) {
+    if (text[i] === "\n") hasNewline = true;
+    i--;
+  }
+  
+  if (i < 0) return true; // start of document
+  if (hasNewline) return true; // preceded by a newline
+  if (text[i] === ":") return true; // preceded by a colon (e.g. "Subject: ")
 
+  if (text[i] !== ".") return false;
+  
   // It's a period. Check if it's part of a title abbreviation (Mr., Ms., Mrs., Dr.)
   let endOfWord = i;
   let startOfWord = i - 1;
@@ -119,6 +141,15 @@ export function findCandidateMisses(
       pattern: "capitalized-name-like",
       dismissed: false,
     });
+  }
+
+  const nameLikeCandidates = candidates.filter(c => c.pattern === "capitalized-name-like");
+  if (nameLikeCandidates.length > 15) {
+    // If there are too many, this is likely a heavily title-cased document (like a resume or contract).
+    // The heuristic will just produce noise, so we suppress these specific candidates.
+    return candidates
+      .filter(c => c.pattern !== "capitalized-name-like")
+      .sort((a, b) => a.start - b.start);
   }
 
   return candidates.sort((a, b) => a.start - b.start);
