@@ -1,3 +1,9 @@
+export interface DocumentData {
+  id: string;
+  title: string;
+  text: string;
+}
+
 export type PiiType =
   | "name"
   | "phone"

@@ -2,16 +2,21 @@
 
 import { useState } from "react";
 import { PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
-import { TYPE_LABEL, confidenceLabel, PII_TYPES } from "@/lib/ui";
 
 const LOW_CONFIDENCE_THRESHOLD = 0.75;
+
+function confidenceLabel(c: number): string {
+  if (c >= 0.85) return "High";
+  if (c >= 0.7) return "Medium";
+  return "Low";
+}
 
 interface Props {
   spans: PiiSpan[];
   manualSpans: ManualSpan[];
   candidates: CandidateMiss[];
   focusedId: string | null;
-  onFocus: (id: string) => void;
+  onFocus: (id: string | null) => void;
   onConfirm: (id: string) => void;
   onReject: (id: string, reason: string) => void;
   onRedactCandidate: (id: string, type: PiiType) => void;
@@ -88,54 +93,28 @@ export default function ReviewQueue({
                   <span className="font-data text-sm text-danger font-semibold">
                     {c.text}
                   </span>
-                  <span className="font-data text-[10px] text-danger/60 uppercase tracking-wide bg-danger/10 px-2 py-0.5 rounded-full">
-                    {c.pattern === "digit-sequence" ? "looks like a number" : "looks like a name"}
-                  </span>
                 </div>
-                {redactingId === c.id ? (
-                  <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      onChange={(e) => {
-                        onRedactCandidate(c.id, e.target.value as PiiType);
-                        setRedactingId(null);
-                      }}
-                      defaultValue=""
-                      className="flex-1 font-data text-xs bg-paper border border-danger/30 rounded-md px-2 py-1.5 text-ink focus:outline-none focus:border-danger/60"
-                    >
-                      <option value="" disabled>Select category...</option>
-                      {PII_TYPES.map((t) => (
-                        <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => setRedactingId(null)}
-                      className="font-data text-[11px] text-danger/70 hover:text-danger underline px-1"
-                    >
-                      cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRedactingId(c.id);
-                      }}
-                      className="font-data text-[11px] bg-danger text-paper px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
-                    >
-                      Redact
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDismissCandidate(c.id);
-                      }}
-                      className="font-data text-[11px] border border-danger/40 text-danger px-3 py-1.5 rounded-md hover:bg-danger/10 transition-colors"
-                    >
-                      Not PII
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const guessType = c.pattern === "digit-sequence" ? "phone" : "name";
+                      onRedactCandidate(c.id, guessType);
+                    }}
+                    className="font-data text-[11px] bg-danger text-paper px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
+                  >
+                    Redact
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismissCandidate(c.id);
+                    }}
+                    className="font-data text-[11px] border border-danger/40 text-danger px-3 py-1.5 rounded-md hover:bg-danger/10 transition-colors"
+                  >
+                    Not PII
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -166,7 +145,7 @@ export default function ReviewQueue({
                     {s.text}
                   </span>
                   <span className="font-data text-[10px] text-low-risk/60 uppercase tracking-wide">
-                    {TYPE_LABEL[s.type]} · {confidenceLabel(s.confidence)}
+                    {confidenceLabel(s.confidence)}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -217,7 +196,7 @@ export default function ReviewQueue({
                 <div>
                   <span className="font-data text-xs text-ink-soft font-medium">{s.text}</span>
                   <span className="font-data text-[10px] text-neutral ml-2">
-                    {TYPE_LABEL[s.type]} · {confidenceLabel(s.confidence)}
+                    {confidenceLabel(s.confidence)}
                   </span>
                 </div>
                 <button
@@ -238,32 +217,38 @@ export default function ReviewQueue({
       {/* ── Added by you ────────────────────────────────────────────── */}
       {manualSpans.length > 0 && (
         <section>
-          <SectionLabel count={manualSpans.length} color="text-neutral">
+          <SectionLabel count={manualSpans.length} color="text-ink">
             Added by you
           </SectionLabel>
           <div className="flex flex-col gap-1.5">
-            {manualSpans.map((m) => (
+            {manualSpans.map((s) => (
               <div
-                key={m.id}
-                onClick={() => onFocus(m.id)}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg bg-paper border border-low-risk/30 cursor-pointer transition-all ${
-                  focusedId === m.id
-                    ? "ring-2 ring-low-risk/40 shadow-md"
-                    : "hover:border-low-risk/50 hover:shadow-sm"
-                }`}
+                key={s.id}
+                onMouseEnter={() => onFocus(s.id)}
+                onMouseLeave={() => onFocus(null)}
+                className={`
+                  flex items-center justify-between px-3 py-2.5 rounded-lg border cursor-pointer transition-all
+                  ${
+                    focusedId === s.id
+                      ? "bg-paper border-ink shadow-sm ring-1 ring-ink/10"
+                      : "bg-paper-dim border-rule hover:border-neutral/40 hover:bg-paper"
+                  }
+                `}
               >
-                <span className="font-data text-xs text-ink-soft">
-                  {TYPE_LABEL[m.type]} ·{" "}
-                  <span className="text-low-risk">{m.text}</span>
-                </span>
+                <div>
+                  <span className="font-data text-xs text-ink font-medium">{s.text}</span>
+                  <span className="font-data text-[10px] text-neutral ml-2">
+                    MANUAL
+                  </span>
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemoveManual(m.id);
+                    onRemoveManual(s.id);
                   }}
-                  className="font-data text-[11px] text-neutral hover:text-danger underline transition-colors"
+                  className="font-data text-[11px] text-danger hover:opacity-70 transition-opacity"
                 >
-                  undo
+                  remove
                 </button>
               </div>
             ))}

@@ -13,6 +13,7 @@ interface Props {
   onRerun: () => void;
   rerunning: boolean;
   onExport: () => void;
+  exporting?: boolean;
 }
 
 export default function StatsBar({
@@ -26,6 +27,7 @@ export default function StatsBar({
   onRerun,
   rerunning,
   onExport,
+  exporting = false,
 }: Props) {
   const { theme, toggle } = useTheme();
   const allClear =
@@ -101,9 +103,15 @@ export default function StatsBar({
           <div className="flex items-center gap-4">
             <button
               onClick={onExport}
-              className="font-data text-[11px] text-ink border border-rule px-3 py-1.5 rounded-md hover:bg-ink hover:text-paper shadow-sm hover:shadow-md transition-all duration-200"
+              disabled={exporting}
+              className="font-data text-[11px] text-ink border border-rule px-3 py-1.5 rounded-md hover:bg-ink hover:text-paper shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Export Document
+              {exporting ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full border border-neutral border-t-ink animate-spin inline-block" />
+                  Exporting…
+                </span>
+              ) : "Export Document"}
             </button>
             <button
               onClick={onRerun}

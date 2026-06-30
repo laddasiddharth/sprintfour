@@ -1,16 +1,17 @@
 "use client";
+// NOTE: jsPDF is only used as a fallback for sample documents.
+// Imported documents are redacted server-side (PDF → /api/redact-pdf-export, others → /api/redact-doc).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DOCUMENTS, DocumentData } from "@/lib/sample-document";
-import { PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
+import { DocumentData, PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
 import { jsPDF } from "jspdf";
 import { findCandidateMisses } from "@/lib/heuristics";
 import { buildSegments } from "@/lib/segments";
 import DocumentView from "@/components/DocumentView";
+import PDFRedactViewer from "@/components/PDFRedactViewer";
 import ReviewQueue from "@/components/ReviewQueue";
 import StatsBar from "@/components/StatsBar";
 import SafeExplanationModal from "@/components/SafeExplanationModal";
-import { PII_TYPES, TYPE_LABEL } from "@/lib/ui";
 
 interface PendingSelection {
   start: number;
@@ -33,16 +34,23 @@ export default function Home() {
   const [safeExplanationText, setSafeExplanationText] = useState<{text: string, context: string, start: number, end: number} | null>(null);
   const [manualCounter, setManualCounter] = useState(0);
 
-  const [selectedDocId, setSelectedDocId] = useState<string>(DOCUMENTS[0].id);
+  const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [importedDocs, setImportedDocs] = useState<DocumentData[]>([]);
+  // Maps docId → original File so we can send it to /api/redact-doc on export
+  const [importedFiles, setImportedFiles] = useState<Map<string, File>>(new Map());
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const allDocs = useMemo(() => [...DOCUMENTS, ...importedDocs], [importedDocs]);
-  const currentDoc = useMemo(() => allDocs.find(d => d.id === selectedDocId) || allDocs[0], [selectedDocId, allDocs]);
+  const allDocs = useMemo(() => [...importedDocs], [importedDocs]);
+  const currentDoc = useMemo(() => allDocs.find(d => d.id === selectedDocId) || allDocs[0] || null, [selectedDocId, allDocs]);
+
+  // Detect if the currently-viewed document is an imported PDF
+  const currentFile = useMemo(() => currentDoc ? (importedFiles.get(currentDoc.id) ?? null) : null, [currentDoc, importedFiles]);
+  const isPdf = useMemo(() => currentFile?.name.toLowerCase().endsWith(".pdf") ?? false, [currentFile]);
 
   async function loadDetection(docText: string) {
     setLoading(true);
@@ -92,7 +100,7 @@ export default function Home() {
     } else {
       setAppState("idle");
     }
-  }, [currentDoc.id, isClient]);
+  }, [currentDoc?.id, isClient]);
 
   const handleFileImport = useCallback(async (file: File) => {
     setImportError(null);
@@ -112,6 +120,8 @@ export default function Home() {
         text: data.text,
       };
       setImportedDocs(prev => [...prev, newDoc]);
+      // Store the original File so we can send it to /api/redact-doc on export
+      setImportedFiles(prev => new Map(prev).set(newDoc.id, file));
       autoAnalyzeRef.current = true;
       setSelectedDocId(newDoc.id);
     } catch {
@@ -139,6 +149,7 @@ export default function Home() {
     setSource(null);
     setNote(undefined);
     setManualCounter(0);
+    if (!currentDoc) return;
     await loadDetection(currentDoc.text);
   }
 
@@ -147,6 +158,7 @@ export default function Home() {
     setSpans([]);
     setManualSpans([]);
     setPendingSelection(null);
+    if (!currentDoc) return;
     await loadDetection(currentDoc.text);
     setRerunning(false);
   }
@@ -199,7 +211,7 @@ export default function Home() {
   }
 
   function handleExplainSafe() {
-    if (!pendingSelection) return;
+    if (!pendingSelection || !currentDoc) return;
     const { text, start, end } = pendingSelection;
     const ctxStart = Math.max(0, start - 40);
     const ctxEnd = Math.min(currentDoc.text.length, end + 40);
@@ -233,11 +245,60 @@ export default function Home() {
   }
 
   const segments = useMemo(
-    () => buildSegments(currentDoc.text, spans, manualSpans, candidates),
-    [currentDoc.text, spans, manualSpans, candidates],
+    () => buildSegments(currentDoc?.text || "", spans, manualSpans, candidates),
+    [currentDoc?.text, spans, manualSpans, candidates],
   );
 
-  function handleExport() {
+  async function handleExport() {
+    if (!currentDoc) return;
+    const originalFile = importedFiles.get(currentDoc.id);
+
+    // ── Imported file: send to Python backend ────────────────────────────────
+    if (originalFile) {
+      setExporting(true);
+      try {
+        // Spans to redact: confirmed + pending (not rejected) + manual
+        const redactedSpans = [
+          ...spans
+            .filter((s) => s.status !== "rejected")
+            .map((s) => ({ text: s.text, type: s.type })),
+          ...manualSpans.map((s) => ({ text: s.text, type: s.type })),
+        ];
+
+        const formData = new FormData();
+        formData.append("file", originalFile);
+        formData.append("redactions", JSON.stringify(redactedSpans));
+
+        // PDF → PyMuPDF black bars  |  other formats → █ block replacement
+        const endpoint = originalFile.name.toLowerCase().endsWith(".pdf")
+          ? "/api/redact-pdf-export"
+          : "/api/redact-doc";
+
+        const res = await fetch(endpoint, { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+          alert(`Export failed: ${err.detail || res.statusText}`);
+          return;
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `redacted-${originalFile.name}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert(`Export failed: ${(err as Error).message}`);
+      } finally {
+        setExporting(false);
+      }
+      return;
+    }
+
+    // ── Sample document: fall back to jsPDF ──────────────────────────────────
     let output = "";
     for (const seg of segments) {
       if (seg.kind === "plain") {
@@ -246,10 +307,10 @@ export default function Home() {
         if (seg.span.status === "rejected") {
           output += seg.text;
         } else {
-          output += `[${seg.span.type.toUpperCase()}]`;
+          output += "[REDACTED]";
         }
       } else if (seg.kind === "manual") {
-        output += `[${seg.span.type.toUpperCase()}]`;
+        output += "[REDACTED]";
       } else if (seg.kind === "candidate") {
         output += seg.text;
       }
@@ -260,12 +321,9 @@ export default function Home() {
     const margin = 15;
     const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
     const pageHeight = doc.internal.pageSize.getHeight();
-    
-    // splitTextToSize automatically wraps long text so it fits the PDF width
     const lines = doc.splitTextToSize(output, pageWidth);
-    
     let cursorY = margin + 5;
-    const lineHeight = 5.5; // Approximate line height for 11pt font in mm
+    const lineHeight = 5.5;
 
     for (const line of lines) {
       if (cursorY > pageHeight - margin) {
@@ -308,6 +366,7 @@ export default function Home() {
           onRerun={handleRerun}
           rerunning={rerunning}
           onExport={handleExport}
+          exporting={exporting}
         />
 
         {appState === "idle" ? (
@@ -352,41 +411,33 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Divider */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-rule" />
-                <span className="font-data text-[11px] text-neutral uppercase tracking-widest">or use sample</span>
-                <div className="flex-1 h-px bg-rule" />
-              </div>
-
-              <div className="flex flex-col gap-4 text-left">
-                <select
-                  value={selectedDocId}
-                  onChange={(e) => setSelectedDocId(e.target.value)}
-                  className="w-full bg-paper border border-rule rounded-lg px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-ink truncate"
-                >
-                  <optgroup label="Sample Documents">
-                    {DOCUMENTS.map(doc => (
+              {/* Document selection */}
+              {importedDocs.length > 0 && (
+                <div className="flex flex-col gap-4 text-left">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex-1 h-px bg-rule" />
+                    <span className="font-data text-[11px] text-neutral uppercase tracking-widest">or select imported</span>
+                    <div className="flex-1 h-px bg-rule" />
+                  </div>
+                  <select
+                    value={selectedDocId}
+                    onChange={(e) => setSelectedDocId(e.target.value)}
+                    className="w-full bg-paper border border-rule rounded-lg px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-ink truncate"
+                  >
+                    {importedDocs.map(doc => (
                       <option key={doc.id} value={doc.id}>{doc.title}</option>
                     ))}
-                  </optgroup>
-                  {importedDocs.length > 0 && (
-                    <optgroup label="Imported Documents">
-                      {importedDocs.map(doc => (
-                        <option key={doc.id} value={doc.id}>{doc.title}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-
-                <button
-                  onClick={handleAnalyze}
-                  disabled={importing}
-                  className="w-full font-data text-sm bg-ink text-paper px-4 py-3.5 rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Analyze Document
-                </button>
-              </div>
+                  </select>
+  
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={importing}
+                    className="w-full font-data text-sm bg-ink text-paper px-4 py-3.5 rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Analyze Document
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : loading ? (
@@ -396,7 +447,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start animate-fade-in">
-            <div>
+            <div className="w-full">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <p className="font-data text-[11px] text-neutral uppercase tracking-widest break-words">{currentDoc.title}</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -416,82 +467,93 @@ export default function Home() {
                     }}
                     className="bg-paper font-data text-xs border border-rule rounded px-2 py-1 text-ink focus:outline-none focus:ring-1 focus:ring-ink"
                   >
-                    <optgroup label="Sample">
-                      {DOCUMENTS.map(doc => (
-                        <option key={doc.id} value={doc.id}>{doc.title}</option>
-                      ))}
-                    </optgroup>
-                    {importedDocs.length > 0 && (
-                      <optgroup label="Imported">
-                        {importedDocs.map(doc => (
-                          <option key={doc.id} value={doc.id}>{doc.title}</option>
-                        ))}
-                      </optgroup>
-                    )}
+                    {importedDocs.map(doc => (
+                      <option key={doc.id} value={doc.id}>{doc.title}</option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <DocumentView
-                segments={segments}
-                focusedId={focusedId}
-                onFocus={setFocusedId}
-                onSelectText={handleSelectText}
-                onConfirm={confirmSpan}
-                onReject={rejectSpan}
-                documentText={currentDoc.text}
-              />
               {pendingSelection && pendingSelection.rect && (
-                <div 
-                  className="absolute z-50 bg-paper border border-rule rounded-xl shadow-2xl animate-fade-in flex flex-col gap-2 p-3 w-64"
+                <div
+                  className="fixed z-50 bg-paper shadow-xl border border-rule rounded-lg px-4 py-3 flex gap-3 items-center"
                   style={{
-                    top: pendingSelection.rect.top + window.scrollY - 12,
-                    left: pendingSelection.rect.left + window.scrollX + (pendingSelection.rect.width / 2),
-                    transform: 'translate(-50%, -100%)'
+                    top: pendingSelection.rect.top - 60,
+                    left: pendingSelection.rect.left,
                   }}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="font-data text-[10px] text-neutral whitespace-nowrap">Mark as:</span>
-                    <select
-                      onChange={(e) => confirmManualType(e.target.value as PiiType)}
-                      defaultValue=""
-                      className="flex-1 font-data text-xs bg-paper-dim border border-rule rounded-md px-2 py-1.5 text-ink focus:outline-none focus:border-neutral"
-                    >
-                      <option value="" disabled>Select...</option>
-                      {PII_TYPES.map((t) => (
-                        <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-rule pt-2 mt-1">
-                    <button
-                      onClick={() => setPendingSelection(null)}
-                      className="font-data text-[10px] text-neutral hover:text-ink transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleExplainSafe}
-                      className="font-data text-[10px] flex items-center gap-1 text-ink-soft hover:text-ink transition-colors"
-                    >
-                      <span className="opacity-60">✨</span> Why safe?
-                    </button>
-                  </div>
-                  {/* Down arrow pointing to text */}
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-paper border-b border-r border-rule transform rotate-45" />
+                  <p className="font-data text-[11px] text-neutral">
+                    Redact this text?
+                  </p>
+                  <button
+                    onClick={() => confirmManualType("other")}
+                    className="font-data text-xs bg-ink text-paper px-3 py-1.5 rounded hover:opacity-90"
+                  >
+                    Redact
+                  </button>
+                  <button
+                    onClick={() => setPendingSelection(null)}
+                    className="font-data text-xs text-neutral hover:text-ink"
+                  >
+                    Cancel
+                  </button>
                 </div>
               )}
 
-              {safeExplanationText && (
-                <SafeExplanationModal
-                  text={safeExplanationText.text}
-                  context={safeExplanationText.context}
-                  onRedact={(type) => {
-                    setPendingSelection({ start: safeExplanationText.start, end: safeExplanationText.end, text: safeExplanationText.text });
-                    setTimeout(() => confirmManualType(type), 0);
-                  }}
-                  onClose={() => setSafeExplanationText(null)}
-                />
-              )}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                {/* ORIGINAL PANE */}
+                <div className="relative">
+                  {isPdf && currentFile ? (
+                    <PDFRedactViewer
+                      mode="original"
+                      file={currentFile}
+                      spans={spans}
+                      manualSpans={manualSpans}
+                      onConfirm={confirmSpan}
+                      onReject={rejectSpan}
+                      focusedId={focusedId}
+                      onFocus={setFocusedId}
+                    />
+                  ) : (
+                    <DocumentView
+                      mode="original"
+                      segments={segments}
+                      focusedId={focusedId}
+                      onFocus={setFocusedId}
+                      onSelectText={handleSelectText}
+                      onConfirm={confirmSpan}
+                      onReject={rejectSpan}
+                      documentText={currentDoc.text}
+                    />
+                  )}
+                </div>
+
+                {/* REDACTED PANE */}
+                <div className="relative pointer-events-none">
+                  {isPdf && currentFile ? (
+                    <PDFRedactViewer
+                      mode="redacted"
+                      file={currentFile}
+                      spans={spans}
+                      manualSpans={manualSpans}
+                      onConfirm={confirmSpan}
+                      onReject={rejectSpan}
+                      focusedId={focusedId}
+                      onFocus={setFocusedId}
+                    />
+                  ) : (
+                    <DocumentView
+                      mode="redacted"
+                      segments={segments}
+                      focusedId={focusedId}
+                      onFocus={setFocusedId}
+                      onSelectText={handleSelectText}
+                      onConfirm={confirmSpan}
+                      onReject={rejectSpan}
+                      documentText={currentDoc.text}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="lg:sticky lg:top-8 bg-paper border border-rule rounded-lg shadow-[var(--card-shadow)] p-5">
