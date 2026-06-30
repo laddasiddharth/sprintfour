@@ -32,9 +32,10 @@ export function buildSegments(
 
   for (const [text, bucket] of byText) {
     let searchFrom = 0;
-    for (const span of bucket) {
+    const span = bucket[0];
+    while (true) {
       const start = documentText.indexOf(text, searchFrom);
-      if (start === -1) break; // no more occurrences
+      if (start === -1) break;
       const end = start + text.length;
       ranges.push({
         start,
@@ -62,7 +63,14 @@ export function buildSegments(
     });
   }
 
-  ranges.sort((a, b) => a.start - b.start);
+  const priority = { manual: 3, suggested: 2, candidate: 1 };
+  ranges.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    const priorityA = priority[a.segment.kind as keyof typeof priority] || 0;
+    const priorityB = priority[b.segment.kind as keyof typeof priority] || 0;
+    if (priorityA !== priorityB) return priorityB - priorityA;
+    return (b.end - b.start) - (a.end - a.start);
+  });
 
   const segments: Segment[] = [];
   let cursor = 0;
