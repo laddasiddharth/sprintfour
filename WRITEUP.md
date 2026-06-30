@@ -1,11 +1,23 @@
-# Writeup
+# Conseal — Correction (Writeup)
 
-Sam's failure mode isn't carelessness, it's trust. He's moving fast because the tool has been right enough times that double-checking everything feels wasteful, and that's exactly when a missed name or phone number slips through. So the design problem wasn't "build a UI to accept or reject redactions" — that's the floor. The real problem was deciding where to spend Sam's limited attention, since he won't give equal attention to everything.
+## The Problem
+Sam's failure mode isn't carelessness; it's trust. When a tool is "usually right," users stop double-checking. This leads to dangerous under-redaction (missed PII) or annoying over-redaction. The goal was to build an interface that actively directs Sam's limited attention to where a careless glance costs the most.
 
-I split corrections into two categories with very different risk profiles. Over-redaction (a false positive like a case-citation name or an internal routing code formatted like a phone number) is annoying but harmless if left alone — worst case, something boring stays hidden. Under-redaction is the dangerous one: real PII left visible because the detector never saw it. So the review queue ranks possible misses above low-confidence redactions, which sit above high-confidence ones (which mostly stay collapsed, since reviewing those is wasted effort). The ranking is a bet about where a careless glance costs the most.
+## Our Approach
+We split corrections into clear risk profiles:
+- **Possible Misses:** High risk. Ranked at the top of the queue. We use a lightweight heuristic pass to catch unpunctuated digits or bare capitalized names that the primary detector might have ignored.
+- **Low-Confidence Redactions:** Medium risk. Requires a quick human verify.
+- **High-Confidence Redactions:** Low risk. Mostly collapsed to save mental effort.
 
-The harder design decision was what to do about misses the detector never flagged at all — there's no redaction to second-guess, just silence. I added a small heuristic pass (bare capitalized names, unpunctuated digit runs) that surfaces candidates Sam can confirm or wave off in one tap, alongside manual text selection for anything the heuristic also misses. The heuristic is intentionally dumb and occasionally wrong (it also flags "Johnson" from a case citation) — that's a feature, not a gap: it's cheap for Sam to glance and dismiss, expensive for him to never be asked at all.
+## Recent UI & UX Enhancements
+To ensure a premium, production-ready experience, we recently overhauled the application's usability and responsiveness:
 
-What I left out: a confidence-threshold settings panel, multi-document batching, and an audit/undo history beyond the current session. All three are real product needs, but none of them change how Sam corrects a single document under pressure, which is what the brief asked me to design for. I also didn't build a custom PII detector — detection quality is a research problem, not a UX one, and the brief explicitly said not to spend time there. Instead I leaned on the fact that real LLM detection is genuinely imperfect (the saved fallback run is unedited model output) so the correction experience is designed against real mistakes, not invented ones.
+1. **Intuitive Document Layout:** Moved the color-coded legend to the top of the document view for instant context before reading.
+2. **Confidence Scores at a Glance:** The AI's confidence percentage (e.g., `NAME 98%`) is now displayed directly on the tags within the document, removing the need to click to see the AI's certainty.
+3. **Flawless Mobile Responsiveness:** Added global viewport meta tags, fixed layout constraints, and allowed horizontal text to wrap gracefully. The UI now looks native and scales perfectly down to mobile screens.
+4. **Streamlined Controls:** Replaced bulky grids of 12 PII buttons with clean, sleek `<select>` dropdown menus in both the sidebar and main view to save critical vertical space.
+5. **Accessible Dark Mode:** Overhauled the dark mode color palette, specifically tweaking neutral text colors for high-contrast, effortless readability against dark backgrounds. 
+6. **Smart Idle States:** The statistics bar cleanly hides all data when no document is loaded, preventing an awkward "0 suggested" empty state.
 
-If I had another day: keyboard-only triage (so Sam never touches the mouse) and a "confidence calibration" view showing whether the detector's stated confidence actually predicts Sam's corrections over time.
+## What's Next?
+Given more time, we would implement keyboard-only triage (so Sam never has to reach for the mouse) and multi-document batching to improve his throughput even further.

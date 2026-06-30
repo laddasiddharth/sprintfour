@@ -353,7 +353,7 @@ export default function Home() {
         />
 
         {appState === "idle" ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 text-center animate-fade-in">
             <div className="bg-paper border border-rule rounded-2xl shadow-xl p-6 md:p-10 max-w-lg w-full">
               <h1 className="font-display text-2xl font-semibold text-ink mb-1">Conseal PII Detector</h1>
               <p className="font-data text-sm text-neutral mb-8">Select a sample document or import your own file to begin analysis.</p>
