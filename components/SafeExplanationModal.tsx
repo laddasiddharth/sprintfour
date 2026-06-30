@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PiiType } from "@/lib/types";
+import { PII_TYPES, TYPE_LABEL } from "@/lib/ui";
 
 interface Props {
   text: string;
@@ -111,13 +112,13 @@ export default function SafeExplanationModal({ text, context, onRedact, onClose 
             <div>
               <p className="font-data text-xs text-neutral mb-3">Redact as:</p>
               <div className="flex flex-wrap gap-2">
-                {(["name", "phone", "email", "address", "dob", "ssn", "other"] as PiiType[]).map((t) => (
+                {PII_TYPES.map((t) => (
                   <button
                     key={t}
                     onClick={() => { onRedact(t); onClose(); }}
                     className="font-data text-[11px] uppercase tracking-wider bg-ink text-paper px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
                   >
-                    {t}
+                    {TYPE_LABEL[t]}
                   </button>
                 ))}
               </div>

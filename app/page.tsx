@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { DOCUMENTS } from "@/lib/sample-document";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DOCUMENTS, DocumentData } from "@/lib/sample-document";
 import { PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
 import { findCandidateMisses } from "@/lib/heuristics";
 import { buildSegments } from "@/lib/segments";
@@ -32,8 +32,14 @@ export default function Home() {
   const [manualCounter, setManualCounter] = useState(0);
 
   const [selectedDocId, setSelectedDocId] = useState<string>(DOCUMENTS[0].id);
+  const [importedDocs, setImportedDocs] = useState<DocumentData[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const currentDoc = useMemo(() => DOCUMENTS.find(d => d.id === selectedDocId) || DOCUMENTS[0], [selectedDocId]);
+  const allDocs = useMemo(() => [...DOCUMENTS, ...importedDocs], [importedDocs]);
+  const currentDoc = useMemo(() => allDocs.find(d => d.id === selectedDocId) || allDocs[0], [selectedDocId, allDocs]);
 
   async function loadDetection(docText: string) {
     setLoading(true);
@@ -62,13 +68,55 @@ export default function Home() {
     setLoading(false);
   }
 
+  const autoAnalyzeRef = useRef(false);
+
   useEffect(() => {
-    // When document changes, reset to idle
-    setAppState("idle");
     setFocusedId(null);
     setPendingSelection(null);
     setSafeExplanationText(null);
+    setImportError(null);
+
+    if (autoAnalyzeRef.current) {
+      autoAnalyzeRef.current = false;
+      handleAnalyze();
+    } else {
+      setAppState("idle");
+    }
   }, [currentDoc.id]);
+
+  const handleFileImport = useCallback(async (file: File) => {
+    setImportError(null);
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/extract-text", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setImportError(data.error || "Failed to extract text from file.");
+        return;
+      }
+      const newDoc: DocumentData = {
+        id: `imported-${Date.now()}`,
+        title: file.name,
+        text: data.text,
+      };
+      setImportedDocs(prev => [...prev, newDoc]);
+      autoAnalyzeRef.current = true;
+      setSelectedDocId(newDoc.id);
+    } catch {
+      setImportError("An unexpected error occurred. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileImport(file);
+  }
 
   async function handleAnalyze() {
     setLoading(true);
@@ -215,12 +263,50 @@ export default function Home() {
     [currentDoc.text, spans, manualSpans, candidates],
   );
 
+  function handleExport() {
+    let output = "";
+    for (const seg of segments) {
+      if (seg.kind === "plain") {
+        output += seg.text;
+      } else if (seg.kind === "suggested") {
+        if (seg.span.status === "rejected") {
+          output += seg.text;
+        } else {
+          output += `[${seg.span.type.toUpperCase()}]`;
+        }
+      } else if (seg.kind === "manual") {
+        output += `[${seg.span.type.toUpperCase()}]`;
+      } else if (seg.kind === "candidate") {
+        output += seg.text;
+      }
+    }
+
+    const blob = new Blob([output], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `redacted-${currentDoc.title || "document"}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const activeCandidates = candidates.filter((c) => !c.dismissed).length;
   const confirmedCount = spans.filter((s) => s.status === "confirmed").length;
   const rejectedCount = spans.filter((s) => s.status === "rejected").length;
 
   return (
     <main className="min-h-screen px-6 py-10 md:px-12 bg-paper-dim">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".txt,.md,.csv,.pdf,.doc,.docx,.html,.htm,.rtf,.json,.xml,.log"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileImport(file);
+          e.target.value = "";
+        }}
+      />
       <div className="max-w-6xl mx-auto">
         <StatsBar
           totalSuggested={spans.length}
@@ -232,31 +318,82 @@ export default function Home() {
           note={note}
           onRerun={handleRerun}
           rerunning={rerunning}
+          onExport={handleExport}
         />
 
         {appState === "idle" ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center animate-fade-in">
-            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-10 max-w-md w-full">
-              <h1 className="font-display text-2xl font-semibold text-ink mb-2">Conseal PII Detector</h1>
-              <p className="font-data text-sm text-neutral mb-8">Select a document to begin analysis.</p>
-              
+          <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-10 max-w-lg w-full">
+              <h1 className="font-display text-2xl font-semibold text-ink mb-1">Conseal PII Detector</h1>
+              <p className="font-data text-sm text-neutral mb-8">Select a sample document or import your own file to begin analysis.</p>
+
+              {/* File drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative cursor-pointer border-2 border-dashed rounded-xl px-6 py-8 mb-6 transition-all ${
+                  isDragging
+                    ? "border-ink bg-ink/5 scale-[1.01]"
+                    : "border-rule hover:border-neutral hover:bg-paper-dim/50"
+                }`}
+              >
+                {importing ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-4 h-4 rounded-full border-2 border-neutral border-t-ink animate-spin" />
+                    <span className="font-data text-sm text-neutral">Extracting text…</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-3xl">📂</span>
+                    <p className="font-data text-sm text-ink font-medium">Drop a file here or click to browse</p>
+                    <p className="font-data text-[11px] text-neutral">
+                      PDF · DOCX · TXT · MD · CSV · HTML · RTF · JSON · XML
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Import error */}
+              {importError && (
+                <div className="mb-4 flex items-start gap-2 bg-danger/10 border border-danger/30 rounded-lg px-4 py-3 text-left">
+                  <span className="text-danger mt-0.5">⚠️</span>
+                  <p className="font-data text-xs text-danger">{importError}</p>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-px bg-rule" />
+                <span className="font-data text-[11px] text-neutral uppercase tracking-widest">or use sample</span>
+                <div className="flex-1 h-px bg-rule" />
+              </div>
+
               <div className="flex flex-col gap-4 text-left">
-                <label className="font-data text-[11px] uppercase tracking-widest text-neutral font-semibold">
-                  Document
-                </label>
                 <select
                   value={selectedDocId}
                   onChange={(e) => setSelectedDocId(e.target.value)}
                   className="w-full bg-paper border border-rule rounded-lg px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-ink"
                 >
-                  {DOCUMENTS.map(doc => (
-                    <option key={doc.id} value={doc.id}>{doc.title}</option>
-                  ))}
+                  <optgroup label="Sample Documents">
+                    {DOCUMENTS.map(doc => (
+                      <option key={doc.id} value={doc.id}>{doc.title}</option>
+                    ))}
+                  </optgroup>
+                  {importedDocs.length > 0 && (
+                    <optgroup label="Imported Documents">
+                      {importedDocs.map(doc => (
+                        <option key={doc.id} value={doc.id}>{doc.title}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
-                
+
                 <button
                   onClick={handleAnalyze}
-                  className="mt-4 w-full font-data text-sm bg-ink text-paper px-4 py-3.5 rounded-lg hover:opacity-90 transition-opacity font-medium"
+                  disabled={importing}
+                  className="w-full font-data text-sm bg-ink text-paper px-4 py-3.5 rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Analyze Document
                 </button>
@@ -273,15 +410,37 @@ export default function Home() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <p className="font-data text-[11px] text-neutral uppercase tracking-widest">{currentDoc.title}</p>
-                <select
-                  value={selectedDocId}
-                  onChange={(e) => setSelectedDocId(e.target.value)}
-                  className="bg-paper font-data text-xs border border-rule rounded px-2 py-1 text-ink focus:outline-none focus:ring-1 focus:ring-ink"
-                >
-                  {DOCUMENTS.map(doc => (
-                    <option key={doc.id} value={doc.id}>{doc.title}</option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={importing}
+                    className="flex items-center gap-1.5 bg-paper font-data text-xs border border-rule rounded px-2 py-1 text-ink hover:bg-paper-dim transition-colors disabled:opacity-50"
+                  >
+                    <span className="opacity-70">📂</span>
+                    {importing ? "Uploading..." : "Upload File"}
+                  </button>
+                  <select
+                    value={selectedDocId}
+                    onChange={(e) => {
+                      autoAnalyzeRef.current = true;
+                      setSelectedDocId(e.target.value);
+                    }}
+                    className="bg-paper font-data text-xs border border-rule rounded px-2 py-1 text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+                  >
+                    <optgroup label="Sample">
+                      {DOCUMENTS.map(doc => (
+                        <option key={doc.id} value={doc.id}>{doc.title}</option>
+                      ))}
+                    </optgroup>
+                    {importedDocs.length > 0 && (
+                      <optgroup label="Imported">
+                        {importedDocs.map(doc => (
+                          <option key={doc.id} value={doc.id}>{doc.title}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
               </div>
               <DocumentView
                 segments={segments}

@@ -7,6 +7,11 @@ export const TYPE_LABEL: Record<PiiType, string> = {
   address: "Address",
   dob: "Date of birth",
   ssn: "SSN",
+  account: "Account Num",
+  financial: "Financial",
+  url: "URL",
+  org: "Organization",
+  job: "Job Title",
   other: "Other",
 };
 
@@ -17,6 +22,11 @@ export const PII_TYPES: PiiType[] = [
   "address",
   "dob",
   "ssn",
+  "account",
+  "financial",
+  "url",
+  "org",
+  "job",
   "other",
 ];
 
