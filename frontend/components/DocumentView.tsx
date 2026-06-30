@@ -1,20 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Segment } from "@/lib/segments";
 import { PiiType } from "@/lib/types";
-import RedactionModal from "./RedactionModal";
 
 // Single color for all highlights
 const TAG_STYLE = "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-700";
-
-interface ModalState {
-  id: string;
-  text: string;
-  type: PiiType;
-  context: string;
-  confidence?: number;
-}
 
 interface Props {
   mode: "original" | "redacted";
@@ -38,7 +29,6 @@ export default function DocumentView({
   documentText,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [modal, setModal] = useState<ModalState | null>(null);
 
   // Smooth scroll to focused span
   useEffect(() => {
@@ -71,15 +61,6 @@ export default function DocumentView({
   }, [focusedId]);
 
 
-  function openModal(id: string, text: string, type: PiiType, confidence?: number) {
-    // Extract ~80 chars of context around the text
-    const idx = documentText.indexOf(text);
-    const ctxStart = Math.max(0, idx - 40);
-    const ctxEnd = Math.min(documentText.length, idx + text.length + 40);
-    const context = documentText.slice(ctxStart, ctxEnd);
-    setModal({ id, text, type, context, confidence });
-    onFocus(id);
-  }
 
   function handleMouseUp() {
     if (mode !== "original") return;
@@ -179,7 +160,7 @@ export default function DocumentView({
                     data-span-id={spanId}
                     data-seg-start={seg.start}
                     className="line-through decoration-red-500/50 decoration-2 opacity-60 cursor-pointer"
-                    onClick={() => openModal(spanId, seg.text, type, confidence)}
+                    onClick={() => onFocus(spanId)}
                   >
                     {seg.text}
                   </span>
@@ -197,7 +178,7 @@ export default function DocumentView({
                     ${isPending ? "border-dashed opacity-80" : "border-solid"}
                     ${style}
                   `}
-                  onClick={() => openModal(spanId, seg.text, type, confidence)}
+                  onClick={() => onFocus(spanId)}
                 >
                   {seg.text}
                 </span>
@@ -232,19 +213,6 @@ export default function DocumentView({
           })}
         </div>
       </div>
-
-      {/* Modal */}
-      {modal && (
-        <RedactionModal
-          text={modal.text}
-          type={modal.type}
-          context={modal.context}
-          confidence={modal.confidence}
-          onConfirm={() => onConfirm(modal.id)}
-          onReject={() => onReject(modal.id, "Not PII")}
-          onClose={() => setModal(null)}
-        />
-      )}
     </>
   );
 }
