@@ -23,8 +23,7 @@ export default function ThemeProvider({
   // On mount, read the saved preference or system preference
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null;
-    const preferred =
-      saved ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const preferred = saved ?? "light";
     setTheme(preferred);
     document.documentElement.classList.toggle("dark", preferred === "dark");
   }, []);
