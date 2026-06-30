@@ -14,7 +14,7 @@ It is designed to automatically flag sensitive information using a state-of-the-
 - **"Why wasn't this redacted?" (Safe Explanation):** If the AI leaves text visible, you can query Gemini to explain *why* it deemed the text safe, and force-redact it directly from the modal if you disagree.
 - **AI Rationale:** Every flagged item comes with an AI-generated explanation for why it was flagged.
 - **File Import:** Upload and extract text from local files (PDF, DOCX, TXT, MD, CSV, HTML, RTF, JSON, XML).
-- **Export Redacted Documents:** Download a sanitized `.txt` file where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
+- **Export Redacted Documents:** Download a sanitized `.pdf` file where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
 - **Inline Confidence Scores:** AI confidence percentages (e.g., `100%`) are displayed directly on PII tags in the document viewer, giving instant visibility into the model's certainty without extra clicks.
 - **Mobile Responsive & Accessible:** Fully responsive design with optimized `<select>` menus, smart idle states, and viewport scaling for flawless mobile usage. Includes a beautiful, high-contrast Dark Mode.
 - **State Persistence:** Your manual redactions and progress are automatically saved to `localStorage`, so you never lose your work on refresh.
