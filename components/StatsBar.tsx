@@ -37,9 +37,9 @@ export default function StatsBar({
       {/* Top row */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl font-semibold text-ink leading-tight">
+          <h1 className="font-display text-3xl md:text-4xl font-bold bg-gradient-to-r from-ink to-ink-soft bg-clip-text text-transparent leading-tight transition-all">
             Conseal{" "}
-            <span className="text-neutral font-normal">— Correction</span>
+            <span className="text-neutral font-normal text-2xl">— Correction</span>
           </h1>
           <p className="text-ink-soft text-sm mt-1">
             Fix the tool&apos;s mistakes before this file goes out.
@@ -101,7 +101,7 @@ export default function StatsBar({
           <div className="flex items-center gap-4">
             <button
               onClick={onExport}
-              className="font-data text-[11px] text-ink border border-rule px-2 py-0.5 rounded hover:bg-paper-dim transition-colors"
+              className="font-data text-[11px] text-ink border border-rule px-3 py-1.5 rounded-md hover:bg-ink hover:text-paper shadow-sm hover:shadow-md transition-all duration-200"
             >
               Export Document
             </button>
