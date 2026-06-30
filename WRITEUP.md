@@ -17,7 +17,9 @@ To ensure a premium, production-ready experience, we recently overhauled the app
 3. **Flawless Mobile Responsiveness:** Added global viewport meta tags, fixed layout constraints, and allowed horizontal text to wrap gracefully. The UI now looks native and scales perfectly down to mobile screens.
 4. **Streamlined Controls:** Replaced bulky grids of 12 PII buttons with clean, sleek `<select>` dropdown menus in both the sidebar and main view to save critical vertical space.
 5. **Accessible Dark Mode:** Overhauled the dark mode color palette, specifically tweaking neutral text colors for high-contrast, effortless readability against dark backgrounds. 
-6. **Smart Idle States:** The statistics bar cleanly hides all data when no document is loaded, preventing an awkward "0 suggested" empty state.
+6. **Contextual Action Menus:** Highlighting text no longer forces the user to move their mouse to the bottom of the screen. A sleek, fixed-position contextual popup now floats directly above the highlighted text for rapid manual redactions.
+7. **Premium UI Micro-Animations:** Replaced static layouts with elegant typography gradients, tactile button hover states, and smooth drag-and-drop depth cues, making the tool feel fast, modern, and satisfying to use.
+8. **True PDF Export:** Upgraded the export engine from a raw text dump to a true `jsPDF` multi-page document generator with automatic line-wrapping and pagination.
 
 ## What's Next?
 Given more time, we would implement keyboard-only triage (so Sam never has to reach for the mouse) and multi-document batching to improve his throughput even further.
