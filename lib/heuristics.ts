@@ -89,7 +89,7 @@ function isSentenceInitial(text: string, wordStart: number): boolean {
   if (text[i] !== ".") return false;
   
   // It's a period. Check if it's part of a title abbreviation (Mr., Ms., Mrs., Dr.)
-  let endOfWord = i;
+  const endOfWord = i;
   let startOfWord = i - 1;
   while (startOfWord >= 0 && /[a-zA-Z]/.test(text[startOfWord])) startOfWord--;
   const prevWord = text.slice(startOfWord + 1, endOfWord).toLowerCase();

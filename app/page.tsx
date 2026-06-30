@@ -370,8 +370,8 @@ export default function Home() {
 
         {appState === "idle" ? (
           <div className="flex flex-col items-center justify-center py-8 md:py-16 text-center animate-fade-in">
-            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-6 md:p-10 max-w-lg w-full">
-              <h1 className="font-display text-2xl font-semibold text-ink mb-1">Conseal PII Detector</h1>
+            <div className="bg-paper border border-rule rounded-2xl shadow-xl p-6 md:p-10 max-w-lg w-full transition-all duration-300 hover:shadow-2xl">
+              <h1 className="font-display text-2xl md:text-3xl font-bold bg-gradient-to-br from-ink to-ink-soft bg-clip-text text-transparent mb-2">Conseal PII Detector</h1>
               <p className="font-data text-sm text-neutral mb-8">Select a sample document or import your own file to begin analysis.</p>
 
               {/* File drop zone */}
@@ -380,20 +380,20 @@ export default function Home() {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative cursor-pointer border-2 border-dashed rounded-xl px-6 py-8 mb-6 transition-all ${
+                className={`relative cursor-pointer border-2 border-dashed rounded-xl px-6 py-10 mb-6 transition-all duration-300 ease-out flex flex-col items-center justify-center ${
                   isDragging
-                    ? "border-ink bg-ink/5 scale-[1.01]"
-                    : "border-rule hover:border-neutral hover:bg-paper-dim/50"
+                    ? "border-ink bg-ink/5 scale-[1.02] shadow-[inset_0_0_20px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
+                    : "border-rule hover:border-neutral hover:bg-paper-dim/80 hover:shadow-sm"
                 }`}
               >
                 {importing ? (
                   <div className="flex items-center justify-center gap-3">
-                    <div className="w-4 h-4 rounded-full border-2 border-neutral border-t-ink animate-spin" />
-                    <span className="font-data text-sm text-neutral">Extracting text…</span>
+                    <div className="w-5 h-5 rounded-full border-2 border-neutral border-t-ink animate-spin" />
+                    <span className="font-data text-sm text-neutral tracking-wide">Extracting text…</span>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-3xl">📂</span>
+                  <div className="flex flex-col items-center gap-3 transition-transform duration-300 hover:scale-105">
+                    <span className="text-4xl">📂</span>
                     <p className="font-data text-sm text-ink font-medium">Drop a file here or click to browse</p>
                     <p className="font-data text-[11px] text-neutral">
                       PDF · DOCX · TXT · MD · CSV · HTML · RTF · JSON · XML
