@@ -61,7 +61,22 @@ function isSentenceInitial(text: string, wordStart: number): boolean {
   let i = wordStart - 1;
   while (i >= 0 && /\s/.test(text[i])) i--;
   if (i < 0) return true; // start of document
-  return text[i] === "." || text[i] === "\n";
+  if (text[i] !== "." && text[i] !== "\n") return false;
+  
+  // If it's a newline, it's definitely the start of a line/sentence
+  if (text[i] === "\n") return true;
+
+  // It's a period. Check if it's part of a title abbreviation (Mr., Ms., Mrs., Dr.)
+  let endOfWord = i;
+  let startOfWord = i - 1;
+  while (startOfWord >= 0 && /[a-zA-Z]/.test(text[startOfWord])) startOfWord--;
+  const prevWord = text.slice(startOfWord + 1, endOfWord).toLowerCase();
+  
+  if (["mr", "ms", "mrs", "dr", "prof"].includes(prevWord)) {
+    return false; // It's just a title, not end of sentence
+  }
+
+  return true;
 }
 
 export function findCandidateMisses(
