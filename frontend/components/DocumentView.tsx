@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { Segment } from "@/lib/segments";
-import { PiiType } from "@/lib/types";
 
 // Single color for all highlights
 const TAG_STYLE = "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-700";
@@ -13,9 +12,6 @@ interface Props {
   focusedId: string | null;
   onFocus: (id: string) => void;
   onSelectText: (start: number, end: number, text: string, rect: DOMRect) => void;
-  onConfirm: (id: string) => void;
-  onReject: (id: string, reason: string) => void;
-  documentText: string;
 }
 
 export default function DocumentView({
@@ -24,9 +20,6 @@ export default function DocumentView({
   focusedId,
   onFocus,
   onSelectText,
-  onConfirm,
-  onReject,
-  documentText,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -122,10 +115,8 @@ export default function DocumentView({
             }
 
             if (seg.kind === "suggested" || seg.kind === "manual") {
-              const spanId = seg.kind === "suggested" ? seg.span.id : (seg as any).span.id;
-              const type = seg.kind === "suggested" ? seg.span.type : (seg as any).span.type;
+              const spanId = seg.kind === "suggested" ? seg.span.id : (seg as { span: { id: string } }).span.id;
               const status = seg.kind === "suggested" ? seg.span.status : "confirmed";
-              const confidence = seg.kind === "suggested" ? seg.span.confidence : undefined;
               const isRejected = status === "rejected";
               
               if (mode === "redacted") {

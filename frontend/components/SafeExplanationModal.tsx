@@ -14,7 +14,6 @@ export default function SafeExplanationModal({ text, context, onRedact, onClose 
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [showTypes, setShowTypes] = useState(false);
 
   const fetchExplanation = useCallback(async () => {
     setLoading(true);
