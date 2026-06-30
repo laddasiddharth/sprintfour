@@ -16,6 +16,7 @@ interface PendingSelection {
   start: number;
   end: number;
   text: string;
+  rect?: DOMRect;
 }
 
 export default function Home() {
@@ -252,8 +253,8 @@ export default function Home() {
     setManualSpans((prev) => prev.filter((m) => m.id !== id));
   }
 
-  function handleSelectText(start: number, end: number, text: string) {
-    setPendingSelection({ start, end, text });
+  function handleSelectText(start: number, end: number, text: string, rect: DOMRect) {
+    setPendingSelection({ start, end, text, rect });
   }
 
   function handleExplainSafe() {
@@ -498,39 +499,44 @@ export default function Home() {
                 onReject={rejectSpan}
                 documentText={currentDoc.text}
               />
-              {pendingSelection && (
-                <div className="mt-4 bg-paper border border-rule rounded-lg p-4 shadow-[var(--card-shadow)] animate-fade-in">
-                  <p className="font-data text-xs text-neutral mb-3">
-                    Mark &ldquo;<span className="text-ink font-medium">{pendingSelection.text}</span>&rdquo; as:
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                      <select
-                        onChange={(e) => confirmManualType(e.target.value as PiiType)}
-                        defaultValue=""
-                        className="flex-1 font-data text-xs bg-paper border border-rule rounded-md px-3 py-2 text-ink focus:outline-none focus:border-neutral"
-                      >
-                        <option value="" disabled>Select category...</option>
-                        {PII_TYPES.map((t) => (
-                          <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => setPendingSelection(null)}
-                        className="font-data text-[11px] text-neutral underline hover:text-ink transition-colors"
-                      >
-                        cancel
-                      </button>
-                    </div>
-                    <div className="border-t border-rule pt-3 mt-1">
-                      <button
-                        onClick={handleExplainSafe}
-                        className="font-data text-[11px] flex items-center gap-1.5 text-neutral hover:text-ink transition-colors"
-                      >
-                        <span className="opacity-60">✨</span> Why wasn&apos;t this redacted?
-                      </button>
-                    </div>
+              {pendingSelection && pendingSelection.rect && (
+                <div 
+                  className="absolute z-50 bg-paper border border-rule rounded-xl shadow-2xl animate-fade-in flex flex-col gap-2 p-3 w-64"
+                  style={{
+                    top: pendingSelection.rect.top + window.scrollY - 12,
+                    left: pendingSelection.rect.left + window.scrollX + (pendingSelection.rect.width / 2),
+                    transform: 'translate(-50%, -100%)'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-data text-[10px] text-neutral whitespace-nowrap">Mark as:</span>
+                    <select
+                      onChange={(e) => confirmManualType(e.target.value as PiiType)}
+                      defaultValue=""
+                      className="flex-1 font-data text-xs bg-paper-dim border border-rule rounded-md px-2 py-1.5 text-ink focus:outline-none focus:border-neutral"
+                    >
+                      <option value="" disabled>Select...</option>
+                      {PII_TYPES.map((t) => (
+                        <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                      ))}
+                    </select>
                   </div>
+                  <div className="flex items-center justify-between border-t border-rule pt-2 mt-1">
+                    <button
+                      onClick={() => setPendingSelection(null)}
+                      className="font-data text-[10px] text-neutral hover:text-ink transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleExplainSafe}
+                      className="font-data text-[10px] flex items-center gap-1 text-ink-soft hover:text-ink transition-colors"
+                    >
+                      <span className="opacity-60">✨</span> Why safe?
+                    </button>
+                  </div>
+                  {/* Down arrow pointing to text */}
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-paper border-b border-r border-rule transform rotate-45" />
                 </div>
               )}
 

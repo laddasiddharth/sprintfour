@@ -34,7 +34,7 @@ interface Props {
   segments: Segment[];
   focusedId: string | null;
   onFocus: (id: string) => void;
-  onSelectText: (start: number, end: number, text: string) => void;
+  onSelectText: (start: number, end: number, text: string, rect: DOMRect) => void;
   onConfirm: (id: string) => void;
   onReject: (id: string, reason: string) => void;
   documentText: string;
@@ -115,7 +115,7 @@ export default function DocumentView({
       return;
     }
 
-    onSelectText(start, end, realText);
+    onSelectText(start, end, realText, range.getBoundingClientRect());
     selection.removeAllRanges();
   }
 
