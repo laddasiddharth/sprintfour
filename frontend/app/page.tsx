@@ -221,6 +221,29 @@ export default function Home() {
     setPendingSelection(null);
   }
 
+  function redactSafeText() {
+    if (!safeExplanationText) return;
+    setManualSpans((prev) => [
+      ...prev,
+      {
+        id: `manual-${manualCounter}`,
+        text: safeExplanationText.text,
+        type: "other",
+        start: safeExplanationText.start,
+        end: safeExplanationText.end,
+        addedBy: "sam",
+        confidence: 1,
+      },
+    ]);
+    setManualCounter((n) => n + 1);
+    setCandidates((prev) =>
+      prev.filter(
+        (c) => c.end <= safeExplanationText.start || c.start >= safeExplanationText.end,
+      ),
+    );
+    setSafeExplanationText(null);
+  }
+
   function confirmManualType(type: PiiType) {
     if (!pendingSelection) return;
     setManualSpans((prev) => [
@@ -342,8 +365,9 @@ export default function Home() {
   const rejectedCount = spans.filter((s) => s.status === "rejected").length;
 
   return (
-    <main className="min-h-screen px-6 py-10 md:px-12 bg-paper-dim">
-      <input
+    <>
+      <main className="min-h-screen px-6 py-10 md:px-12 bg-paper-dim">
+        <input
         ref={fileInputRef}
         type="file"
         className="hidden"
@@ -354,7 +378,7 @@ export default function Home() {
           e.target.value = "";
         }}
       />
-      <div className="max-w-6xl mx-auto">
+      <div className="w-[96%] max-w-[1800px] mx-auto">
         <StatsBar
           totalSuggested={spans.length}
           confirmed={confirmedCount}
@@ -373,7 +397,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center py-8 md:py-16 text-center animate-fade-in">
             <div className="bg-paper border border-rule rounded-2xl shadow-xl p-6 md:p-10 max-w-lg w-full transition-all duration-300 hover:shadow-2xl">
               <h1 className="font-display text-2xl md:text-3xl font-bold bg-gradient-to-br from-ink to-ink-soft bg-clip-text text-transparent mb-2">Conseal PII Detector</h1>
-              <p className="font-data text-sm text-neutral mb-8">Select a sample document or import your own file to begin analysis.</p>
+              <p className="font-data text-sm text-neutral mb-8">Upload your file to begin analysis.</p>
 
               {/* File drop zone */}
               <div
@@ -481,7 +505,7 @@ export default function Home() {
                     left: pendingSelection.rect.left,
                   }}
                 >
-                  <p className="font-data text-[11px] text-neutral">
+                  <p className="font-data text-[11px] text-neutral mr-2">
                     Redact this text?
                   </p>
                   <button
@@ -489,6 +513,12 @@ export default function Home() {
                     className="font-data text-xs bg-ink text-paper px-3 py-1.5 rounded hover:opacity-90"
                   >
                     Redact
+                  </button>
+                  <button
+                    onClick={handleExplainSafe}
+                    className="font-data text-xs border border-rule text-ink-soft px-3 py-1.5 rounded hover:border-neutral hover:text-ink transition-colors"
+                  >
+                    Why wasn't this redacted?
                   </button>
                   <button
                     onClick={() => setPendingSelection(null)}
@@ -512,6 +542,7 @@ export default function Home() {
                       onReject={rejectSpan}
                       focusedId={focusedId}
                       onFocus={setFocusedId}
+                      onSelectText={handleSelectText}
                     />
                   ) : (
                     <DocumentView
@@ -577,5 +608,15 @@ export default function Home() {
         )}
       </div>
     </main>
+
+      {safeExplanationText && (
+        <SafeExplanationModal
+          text={safeExplanationText.text}
+          context={safeExplanationText.context}
+          onRedact={redactSafeText}
+          onClose={() => setSafeExplanationText(null)}
+        />
+      )}
+    </>
   );
 }

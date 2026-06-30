@@ -41,7 +41,7 @@ Be direct and specific. Do not use bullet points. Do not start with "I"."""
 
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
+            model="gemini-flash-lite-latest",
             contents=prompt,
         )
         explanation = response.text.strip()
