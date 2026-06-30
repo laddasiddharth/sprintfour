@@ -10,11 +10,11 @@ It is designed to automatically flag sensitive information using a state-of-the-
   - **Tier 1 (Direct Identifiers):** Names, Emails, Phone Numbers, SSNs, Addresses, Account Numbers, Financial Data, and URLs.
   - **Tier 2 (Contextual Identifiers):** Organizations and Job Titles.
 - **Smart Fallback Heuristics:** An offline scanner that double-checks the AI's work, highlighting unpunctuated digit runs (e.g., hidden phone numbers) and standalone capitalized words (e.g., bare first names) as "Candidate Misses".
-- **Interactive Document Editor:** Click-and-drag to manually redact any text the AI missed, or click on an AI tag to reveal safe text.
+- **Interactive Document Editor:** Click-and-drag to manually redact any text the AI missed. A sleek contextual popup will instantly appear directly above your selection (similar to Notion or Medium) for rapid categorization.
 - **"Why wasn't this redacted?" (Safe Explanation):** If the AI leaves text visible, you can query Gemini to explain *why* it deemed the text safe, and force-redact it directly from the modal if you disagree.
 - **AI Rationale:** Every flagged item comes with an AI-generated explanation for why it was flagged.
-- **File Import:** Upload and extract text from local files (PDF, DOCX, TXT, MD, CSV, HTML, RTF, JSON, XML).
-- **Export Redacted Documents:** Download a sanitized `.pdf` file where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
+- **File Import:** Upload and extract text from local files (PDF, DOCX, TXT, MD, CSV, HTML, RTF, JSON, XML). The drag-and-drop zone features premium micro-animations and depth cues.
+- **Export Redacted Documents:** Download a sanitized, multi-page `.pdf` file with automatic text-wrapping, where all confirmed PII is safely replaced with bracketed tags (e.g., `[NAME]`, `[EMAIL]`).
 - **Inline Confidence Scores:** AI confidence percentages (e.g., `100%`) are displayed directly on PII tags in the document viewer, giving instant visibility into the model's certainty without extra clicks.
 - **Mobile Responsive & Accessible:** Fully responsive design with optimized `<select>` menus, smart idle states, and viewport scaling for flawless mobile usage. Includes a beautiful, high-contrast Dark Mode.
 - **State Persistence:** Your manual redactions and progress are automatically saved to `localStorage`, so you never lose your work on refresh.
@@ -37,6 +37,14 @@ GEMINI_API_KEY=your_google_ai_studio_key_here
 ```
 
 *Note: If no API key is provided, the app will gracefully fall back to a cached detection run (`lib/sample-detection.ts`) so you can still test the UI and correction workflows.*
+
+## Deployment
+
+Conseal is fully configured for zero-config deployment on Vercel. 
+1. Push your code to GitHub.
+2. Import the repository in your Vercel Dashboard.
+3. Add your `GEMINI_API_KEY` to the Vercel Environment Variables.
+4. Deploy! The `.gitignore` and `eslint` configurations are fully locked down for a flawless production build.
 
 ## Architecture
 
