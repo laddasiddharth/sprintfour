@@ -133,13 +133,29 @@ export default function DocumentView({
     <>
       <div className="bg-paper border border-rule rounded-lg shadow-[var(--card-shadow)] overflow-hidden">
         {/* Header */}
-        <div className="border-b border-rule px-8 py-4 flex items-center justify-between">
+        <div className="border-b border-rule px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-2">
           <p className="font-data text-[11px] tracking-widest text-neutral uppercase">
             Document
           </p>
-          <span className="font-data text-[10px] text-neutral/60 italic">
+          <span className="font-data text-[10px] text-neutral italic">
             Click a tag to review · Select text to flag missed PII
           </span>
+        </div>
+
+        {/* Legend */}
+        <div className="border-b border-rule px-8 py-3 bg-paper-dim/50 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div className="flex flex-wrap gap-2">
+            {PII_TYPES.filter(t => t !== "other").map((t) => (
+              <span key={t} className={`font-data text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full border ${TAG_STYLE[t]}`}>
+                {TYPE_LABEL[t]}
+              </span>
+            ))}
+          </div>
+          <div className="font-data text-[10px] text-neutral italic text-left md:text-right">
+            <span className="line-through">text</span> = revealed ·{" "}
+            <span style={{ background: "var(--safe-highlight)" }} className="px-0.5 rounded-sm">text</span> = safe ·{" "}
+            <span className="underline decoration-dotted decoration-danger">text</span> = possible miss
+          </div>
         </div>
 
         {/* Body */}
@@ -185,8 +201,13 @@ export default function DocumentView({
                     >
                       {seg.text}
                     </button>
-                    <span className={`font-data text-[9px] font-semibold uppercase ml-1 px-1.5 py-0.5 rounded-full border ${tagStyle} opacity-50`}>
-                      {TYPE_LABEL[type]}
+                    <span className={`inline-flex items-center gap-1 font-data text-[9px] font-semibold uppercase ml-1 px-1.5 py-0.5 rounded-full border ${tagStyle} opacity-50`}>
+                      <span>{TYPE_LABEL[type]}</span>
+                      {confidence !== undefined && (
+                        <span className="opacity-70 text-[8px] tracking-wider font-normal bg-black/5 dark:bg-white/10 px-1 rounded-sm">
+                          {Math.round(confidence * 100)}%
+                        </span>
+                      )}
                     </span>
                   </span>
                 );
@@ -208,8 +229,14 @@ export default function DocumentView({
                       isFocused ? "ring-2 ring-offset-1 shadow-md scale-105" : "hover:shadow-sm hover:scale-105"
                     } ${seg.kind === "manual" ? "outline outline-2 outline-low-risk outline-offset-1" : ""}`}
                   >
-                    <span className="opacity-70">▣</span>
-                    {TYPE_LABEL[type]}
+                    <div className="flex items-center gap-1.5">
+                      <span>{TYPE_LABEL[type]}</span>
+                    </div>
+                    {confidence !== undefined && (
+                      <span className="opacity-80 text-[9px] tracking-wider font-normal bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm ml-0.5">
+                        {Math.round(confidence * 100)}%
+                      </span>
+                    )}
                   </button>
                 </span>
               );
@@ -233,20 +260,6 @@ export default function DocumentView({
               </button>
             );
           })}
-        </div>
-
-        {/* Footer legend */}
-        <div className="border-t border-rule px-8 py-3 bg-paper-dim/50 flex flex-wrap gap-4">
-          {PII_TYPES.filter(t => t !== "other").map((t) => (
-            <span key={t} className={`font-data text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full border ${TAG_STYLE[t]}`}>
-              {TYPE_LABEL[t]}
-            </span>
-          ))}
-          <span className="font-data text-[10px] text-neutral italic ml-auto">
-            <span className="line-through">text</span> = revealed ·{" "}
-            <span style={{ background: "var(--safe-highlight)" }} className="px-0.5 rounded-sm">text</span> = safe ·{" "}
-            <span className="underline decoration-dotted decoration-danger">text</span> = possible miss
-          </span>
         </div>
       </div>
 
