@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DOCUMENTS, DocumentData } from "@/lib/sample-document";
 import { PiiSpan, ManualSpan, CandidateMiss, PiiType } from "@/lib/types";
+import { jsPDF } from "jspdf";
 import { findCandidateMisses } from "@/lib/heuristics";
 import { buildSegments } from "@/lib/segments";
 import DocumentView from "@/components/DocumentView";
@@ -312,13 +313,28 @@ export default function Home() {
       }
     }
 
-    const blob = new Blob([output], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `redacted-${currentDoc.title || "document"}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const doc = new jsPDF();
+    doc.setFontSize(11);
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // splitTextToSize automatically wraps long text so it fits the PDF width
+    const lines = doc.splitTextToSize(output, pageWidth);
+    
+    let cursorY = margin + 5;
+    const lineHeight = 5.5; // Approximate line height for 11pt font in mm
+
+    for (const line of lines) {
+      if (cursorY > pageHeight - margin) {
+        doc.addPage();
+        cursorY = margin + 5;
+      }
+      doc.text(line, margin, cursorY);
+      cursorY += lineHeight;
+    }
+
+    doc.save(`redacted-${currentDoc.title || "document"}.pdf`);
   }
 
   const activeCandidates = candidates.filter((c) => !c.dismissed).length;
