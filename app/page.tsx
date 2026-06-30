@@ -75,22 +75,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    try {
-      const savedDocs = localStorage.getItem("conseal-imported-docs");
-      if (savedDocs) setImportedDocs(JSON.parse(savedDocs));
-      const savedId = localStorage.getItem("conseal-selected-doc-id");
-      if (savedId) setSelectedDocId(savedId);
-    } catch (e) {
-      console.error("Failed to load local state", e);
-    }
   }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem("conseal-imported-docs", JSON.stringify(importedDocs));
-      localStorage.setItem("conseal-selected-doc-id", selectedDocId);
-    }
-  }, [importedDocs, selectedDocId, isClient]);
 
   useEffect(() => {
     setFocusedId(null);
@@ -105,13 +90,7 @@ export default function Home() {
       autoAnalyzeRef.current = false;
       handleAnalyze();
     } else {
-      const saved = localStorage.getItem(`conseal-state-${currentDoc.id}`);
-      if (saved) {
-        // If there's a cached state for this document, automatically open it
-        handleAnalyze();
-      } else {
-        setAppState("idle");
-      }
+      setAppState("idle");
     }
   }, [currentDoc.id, isClient]);
 
@@ -153,27 +132,7 @@ export default function Home() {
     setLoading(true);
     setAppState("ready");
 
-    const saved = localStorage.getItem(`conseal-state-${currentDoc.id}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.docLength !== currentDoc.text.length) {
-          throw new Error("Document text changed, cache invalidated");
-        }
-        setSpans(parsed.spans || []);
-        setManualSpans(parsed.manualSpans || []);
-        setCandidates(parsed.candidates || []);
-        setSource(parsed.source || null);
-        setNote(parsed.note);
-        setManualCounter(parsed.manualCounter || 0);
-        setLoading(false);
-        return;
-      } catch (e) {
-        console.error("Failed to parse saved state", e);
-      }
-    }
-
-    // Otherwise, clear state and load from API
+    // Clear state and load from API
     setSpans([]);
     setManualSpans([]);
     setCandidates([]);
@@ -183,26 +142,8 @@ export default function Home() {
     await loadDetection(currentDoc.text);
   }
 
-  // Sync state back to localStorage whenever it changes
-  useEffect(() => {
-    if (appState !== "ready" || loading || rerunning) return;
-    localStorage.setItem(
-      `conseal-state-${currentDoc.id}`,
-      JSON.stringify({
-        spans,
-        manualSpans,
-        candidates,
-        source,
-        note,
-        manualCounter,
-        docLength: currentDoc.text.length,
-      })
-    );
-  }, [spans, manualSpans, candidates, source, note, manualCounter, currentDoc.id, currentDoc.text.length, loading, rerunning, appState]);
-
   async function handleRerun() {
     setRerunning(true);
-    localStorage.removeItem(`conseal-state-${currentDoc.id}`);
     setSpans([]);
     setManualSpans([]);
     setPendingSelection(null);
