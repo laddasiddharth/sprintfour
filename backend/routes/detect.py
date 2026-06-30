@@ -44,21 +44,6 @@ Rules:
 6. startIndex and endIndex MUST match the exact "text" substring in the document. Verify before returning.
 7. Return ONLY the JSON array — no markdown, no explanation, no code fences."""
 
-TYPE_MAP: dict[str, str] = {
-    "PERSON_NAME": "name",
-    "EMAIL": "email",
-    "PHONE": "phone",
-    "SSN": "ssn",
-    "ADDRESS": "address",
-    "DATE_OF_BIRTH": "dob",
-    "ACCOUNT_NUMBER": "account",
-    "FINANCIAL": "financial",
-    "URL": "url",
-    "ORG": "org",
-    "JOB_TITLE": "job",
-    "OTHER": "other",
-}
-
 
 class DetectRequest(BaseModel):
     documentText: str
@@ -109,7 +94,7 @@ async def detect_pii(req: DetectRequest):
                 {
                     "id": f"live-{i}",
                     "text": text_val,
-                    "type": TYPE_MAP.get(r.get("type", "OTHER"), "other"),
+                    "type": "other",
                     "confidence": confidence,
                     "status": "confirmed" if confidence >= 0.85 else "pending",
                     "reasoning": r.get("reasoning"),

@@ -64,6 +64,7 @@ interface Props {
   onReject: (id: string, reason: string) => void;
   focusedId: string | null;
   onFocus: (id: string | null) => void;
+  onSelectText?: (start: number, end: number, text: string, rect: DOMRect) => void;
 }
 
 // ── Matrix helpers (avoid depending on pdfjs Util API version) ───────────────
@@ -91,6 +92,7 @@ export default function PDFRedactViewer({
   onReject,
   focusedId,
   onFocus,
+  onSelectText,
 }: Props) {
   const [pages, setPages] = useState<PDFPage[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "done" | "error">("loading");
@@ -172,8 +174,17 @@ export default function PDFRedactViewer({
             const w = Math.abs(item.width) * RENDER_SCALE; // approx canvas width
 
             blocks.push({ str: item.str, x, y, w, h: fontH * 1.2 });
-            text += item.str;
           }
+
+          // Sort blocks visually (top-to-bottom, left-to-right)
+          blocks.sort((a, b) => {
+            if (Math.abs(a.y - b.y) > 5) {
+              return a.y - b.y;
+            }
+            return a.x - b.x;
+          });
+
+          text = blocks.map(b => b.str).join("");
 
           result.push({
             num: pageNum,
@@ -310,7 +321,39 @@ export default function PDFRedactViewer({
     return result;
   }, [pages, spans, manualSpans]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  function handleMouseUp(e: React.MouseEvent) {
+    if (mode !== "original" || !onSelectText) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const text = selection.toString().trim();
+    if (!text || text.length < 2) return;
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    let startNode = range.startContainer;
+    if (startNode.nodeType === Node.TEXT_NODE) startNode = startNode.parentNode!;
+    
+    let el: HTMLElement | null = startNode as HTMLElement;
+    while (el && !el.getAttribute("data-global-start") && el.tagName !== "DIV") {
+      el = el.parentElement;
+    }
+
+    let globalStart = 0;
+    if (el) {
+      const segStartStr = el.getAttribute("data-global-start");
+      if (segStartStr) {
+        globalStart = parseInt(segStartStr, 10) + range.startOffset;
+      }
+    }
+
+    onSelectText(globalStart, globalStart + text.length, text, rect);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loadState === "error") {
     return (
@@ -322,18 +365,23 @@ export default function PDFRedactViewer({
   }
 
   return (
-    <div className="flex flex-col gap-5 items-center w-full">
-      {/* Loading shimmer */}
-      {loadState === "loading" && pages.length === 0 && (
-        <div className="flex items-center gap-3 py-16 animate-fade-in">
-          <div className="w-5 h-5 rounded-full border-2 border-neutral border-t-ink animate-spin" />
-          <p className="font-data text-sm text-neutral">Rendering PDF…</p>
-        </div>
-      )}
+    <div 
+      className="w-full h-full overflow-auto bg-[#e5e5e5] p-4 md:p-8 custom-scrollbar select-text"
+      onMouseUp={handleMouseUp}
+    >
+      <div className="flex flex-col items-center gap-6">
+        {/* Loading shimmer */}
+        {loadState === "loading" && pages.length === 0 && (
+          <div className="flex items-center gap-3 py-16 animate-fade-in">
+            <div className="w-5 h-5 rounded-full border-2 border-neutral border-t-ink animate-spin" />
+            <p className="font-data text-sm text-neutral">Rendering PDF…</p>
+          </div>
+        )}
 
-      {/* Pages */}
-      {pages.map((page) => {
-        const pageBoxes = boxes.filter((b) => b.pageNum === page.num);
+        {pages.map((page, pageIndex) => {
+            // Calculate an approximate global start for this page
+            const pageGlobalStart = pages.slice(0, pageIndex).reduce((acc, p) => acc + p.text.length, 0);
+            const pageBoxes = boxes.filter((b) => b.pageNum === page.num);
 
         return (
           <div
@@ -350,8 +398,34 @@ export default function PDFRedactViewer({
               draggable={false}
             />
 
+            {/* Transparent Text Layer for Selection */}
+            {mode === "original" && (
+              <div className="absolute inset-0 text-transparent selection:bg-purple-500/30 selection:text-transparent z-10">
+                {page.blocks.map((b, i) => {
+                  const left = `${(b.x / page.canvasW) * 100}%`;
+                  const top = `${(b.y / page.canvasH) * 100}%`;
+                  const width = `${(b.w / page.canvasW) * 100}%`;
+                  const height = `${(b.h / page.canvasH) * 100}%`;
+                  // We need to find the block's character start within the page text
+                  const blockStart = page.blocks.slice(0, i).reduce((acc, curr) => acc + curr.str.length, 0);
+                  const globalStart = pageGlobalStart + blockStart;
+
+                  return (
+                    <span
+                      key={i}
+                      data-global-start={globalStart}
+                      className="absolute leading-none whitespace-pre flex items-center"
+                      style={{ left, top, width, height, fontSize: `${b.h}px`, lineHeight: 1 }}
+                    >
+                      {b.str}{" "}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
             {/* PII overlay boxes */}
-            <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 pointer-events-none z-20">
               {pageBoxes.map((box) => {
                 // Convert absolute canvas px to % for responsive scaling
                 const left = `${(box.x / page.canvasW) * 100}%`;
@@ -407,58 +481,6 @@ export default function PDFRedactViewer({
                     onMouseEnter={() => setHoveredBox(box.key)}
                     onMouseLeave={() => setHoveredBox(null)}
                   >
-                    {/* Tooltip on hover */}
-                    {isHovered && (
-                      <div
-                        className="absolute z-50 pointer-events-none"
-                        style={{ bottom: "calc(100% + 6px)", left: 0 }}
-                      >
-                        <div className="bg-[#1a1a1a] border border-[#333] text-white text-[10px] font-data rounded-lg px-3 py-2 shadow-2xl whitespace-nowrap min-w-[120px]">
-                          <div className="text-[9px] uppercase tracking-widest text-neutral-400 mb-0.5">
-                            {box.type}
-                          </div>
-                          <div className="text-[11px] font-medium mb-1">{box.text}</div>
-
-                          {/* Confirm / Reject for pending AI spans */}
-                          {!box.isManual && box.status === "pending" && (
-                            <div className="flex gap-3 pt-1.5 border-t border-[#333] pointer-events-auto">
-                              <button
-                                className="text-green-400 hover:text-green-300 transition-colors text-[10px]"
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  onConfirm(box.spanId);
-                                }}
-                              >
-                                ✓ Confirm
-                              </button>
-                              <button
-                                className="text-red-400 hover:text-red-300 transition-colors text-[10px]"
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  onReject(box.spanId, "false positive");
-                                }}
-                              >
-                                ✕ Reject
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Arrow */}
-                          <div
-                            className="absolute top-full left-3"
-                            style={{
-                              width: 8,
-                              height: 8,
-                              background: "#1a1a1a",
-                              borderRight: "1px solid #333",
-                              borderBottom: "1px solid #333",
-                              transform: "rotate(45deg)",
-                              marginTop: -4,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -478,6 +500,7 @@ export default function PDFRedactViewer({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
